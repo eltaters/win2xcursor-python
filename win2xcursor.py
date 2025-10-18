@@ -105,7 +105,7 @@ def cursorfile_from_ani(anifile: str, theme: str, path: str):
 
     # Create the .cursor file
     with open(cpath, "w") as f:
-        for i in range(len(paths)):
+        for i in range(len(seq)):
             f.write(f"{size} {x} {y} {paths[seq[i]]} {1000 * jifrate / 60}\n")
 
     return cpath
