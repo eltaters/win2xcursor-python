@@ -1,0 +1,123 @@
+theme = "Ninomae Inanis (NOiiRE)"
+version = "1.0.0"
+
+# copy & openhand
+[[cursor]]
+file = "alt.ani"
+name = "copy"
+aliases = ["1081e37283d90000800003c07f3ef6bf", "6407b0e94181790501fd1e167b474872", "b66166c04f8c3109214a4fbd64a50fc8",
+  "dnd-copy",         # copy
+  "grab", "openhand"] # openhand
+
+[[cursor]]
+file = "busy.ani"
+name = "wait"
+aliases = ["watch"]
+
+
+[[cursor]]
+file = "dgn1.ani"
+name = "size_fdiag"
+aliases = ["nw-resize", "nwse-resize", "se-resize"]
+
+
+[[cursor]]
+file = "dgn2.ani"
+name = "size_bdiag"
+aliases = ["ne-resize", "nesw-resize", "sw-resize"]
+
+# dnd-move & grabbing
+[[cursor]]
+file = "hand.ani"
+name = "dnd-move"
+aliases = ["4498f0e0c1937ffe01fd06f973665830", "9081237383d90e509aa00f00170e968f", "fcf21c00b30f7e3f83fe0dfd12e71cff",
+  "closedhand", "dnd-none",  "move",
+  "grabbing", # grabbing -> closedhand -> dnd-move
+  "pencil"] # Added by me
+
+
+[[cursor]]
+file = "help.ani"
+name = "help"
+aliases = ["5c6cd98b3f3ebcb1f9c7f1c204630408", "d9ce0ab605698f320427677b458ad60",
+  "left_ptr_help", "question_arrow", "whats_this"]
+
+
+# size_hor & col-resize
+[[cursor]]
+file = "horz.ani"
+name = "size_hor"
+aliases = [
+  "e-resize", "ew-resize", "h_double_arrow", "sb_h_double_arrow", "w-resize", # size_hor
+  "col-resize", "split_h"] # col-resize
+
+
+# pointer & alias
+[[cursor]]
+file = "link.ani"
+name = "pointer"
+aliases = ["3085a0e285430894940527032f8b26df", "640fb0e74195791501fd1ed57b41487f", "a2a266d0498c3104214a47bd64ab0fc8", "9d800788f1b08800ae810202380a0822", "e29285e634086352946a0e7090d73106",
+  "hand1", "hand2", "pointing_hand", # pointer
+  "alias","link"] # alias
+
+# no linux default
+[[cursor]]
+file = "location.ani"
+name = "location"
+aliases = []
+
+
+# all_scroll & fleur
+[[cursor]]
+file = "move.ani"
+name = "all-scroll"
+aliases = ["fleur", "size_all"] # fleur
+
+
+[[cursor]]
+file = "normal.ani"
+name = "default"
+aliases = ["arrow", "left_ptr", "size-bdiag", "size-fdiag", "size-hor", "size-ver", "top_left_arrow"]
+
+
+# no linux default
+[[cursor]]
+file = "person.ani"
+name = "person"
+aliases = []
+
+
+[[cursor]]
+file = "precision.ani"
+name = "crosshair"
+aliases = ["cross", "tcross"]
+
+
+[[cursor]]
+file = "text.ani"
+name = "text"
+aliases = ["ibeam", "xterm"]
+
+
+# not-allowed, forbidden, circle & dnd-no-drop
+[[cursor]]
+file = "unavailable.ani"
+name = "forbidden"
+aliases = ["03b6e0fcb3499374a867c041f52298f0", # circle
+  "circle", "crossed_circle", "not-allowed", # not-allowed
+  "dnd-no-drop", # dnd-no-drop
+  "no-drop"] # forbidden
+
+# size_ver & row-resize
+[[cursor]]
+file = "vert.ani"
+name = "size_ver"
+aliases = ["00008160000006810000408080010102",
+  "n-resize", "ns-resize", "sb_v_double_arrow", "s-resize", "v_double_arrow", # size_ver
+  "row-resize", "split_v"] # row_resize
+
+[[cursor]]
+file = "work.ani"
+name = "progress"
+aliases = ["00000000000000020006000e7e9ffc3f", "08e8e1c95fe2fc01f976f1e063a24ccd", "3ecb610c1bf2410f44200f48c40d3599",
+  "half-busy", "left_ptr_watch"]
