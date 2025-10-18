@@ -1,3 +1,8 @@
+# script generated files 
+*.ani
+*.cursor
+*.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
