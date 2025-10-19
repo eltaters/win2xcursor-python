@@ -4,10 +4,11 @@ import argparse
 import subprocess
 import logging
 from cursorgen import cursorfile_from_ani
+import textwrap
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(levelname)s - %(message)s",
+    format="%(message)s",
 )
 
 # Argument parsing
@@ -75,10 +76,18 @@ os.makedirs(f"{path}/frames", exist_ok=True)
 os.makedirs(f"{path}/cursors", exist_ok=True)
 
 
+# Main script
+
+
+print("=" * 80)
+print(" " * 28 + " WIN2XCUR PYTHON SCRIPT " + " " * 28)
+print("=" * 80)
 for cursor in config["cursor"]:
+    logging.info(f"Creating .cursor file for {cursor['file']}")
     cpath = cursorfile_from_ani(cursor["file"], path)
 
     # create the cursor with xcursorgen
+    logging.info(f"Creating cursor: {cursor['name']}")
     subprocess.run(
         [
             "xcursorgen",
@@ -90,6 +99,9 @@ for cursor in config["cursor"]:
     )
 
     # create all defined aliases
+    logging.info(
+        f"Creating aliases: {textwrap.fill(', '.join(cursor['aliases']), width=62, subsequent_indent=' ' * 18)}\n"
+    )
     for alias in cursor["aliases"]:
         subprocess.run(
             [
@@ -101,9 +113,14 @@ for cursor in config["cursor"]:
             check=True,
             cwd=path,
         )
+    print("-" * 80 + "\n")
 
-    # finally, create the index.theme
-    with open(f"{path}/index.theme", "w") as f:
-        f.write("[Icon Theme]\n")
-        f.write(f"Name={args.theme}\n")
-        f.write("Inherits=breeze_cursors\n")  # defaults for missing icons
+
+# finally, create the index.theme
+logging.info("Writing index.theme")
+with open(f"{path}/index.theme", "w") as f:
+    f.write("[Icon Theme]\n")
+    f.write(f"Name={args.theme}\n")
+    f.write("Inherits=breeze_cursors\n")  # defaults for missing icons
+
+logging.info("Finished creating cursor!🚀🚀")

@@ -3,6 +3,7 @@ from io import BytesIO
 from PIL import Image
 import numpy as np
 from typing import Tuple
+import logging
 
 
 def parse_ani(anifile: str, path: str) -> Tuple[int, int, int, int, bytes]:
@@ -142,12 +143,12 @@ def cursorfile_from_ani(anifile: str, path: str):
     # The last 'LIST' element in an ani file points to icons
     offset = data.rfind(b"LIST") + struct.calcsize("<4sI4s")  # 'LIST' + size + 'fram'
 
-    print(f"File metadata for {path}/ani/{anifile}")
-    print(f"\t- Frames: {frames}")
-    print(f"\t- Steps: {steps}")
-    print(f"\t- Rate: {jifrate} ({int(1000 * jifrate / 60)} ms)")
-    print(f"\t- Flags: AF_ICON {(fl & 0x1) > 0} AF_SEQUENCE {(fl & 0x2) > 0}")
-    print(f"\t- Sequence: {seq}\n")
+    logging.debug(f"File metadata for {path}/ani/{anifile}")
+    logging.debug(f"\t- Frames: {frames}")
+    logging.debug(f"\t- Steps: {steps}")
+    logging.debug(f"\t- Rate: {jifrate} ({int(1000 * jifrate / 60)} ms)")
+    logging.debug(f"\t- Flags: AF_ICON {(fl & 0x1) > 0} AF_SEQUENCE {(fl & 0x2) > 0}")
+    logging.debug(f"\t- Sequence: {seq}\n")
 
     # Transform each .ico frame into a PNG
     x, y, size = 0, 0, 0
