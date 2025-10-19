@@ -1,5 +1,5 @@
 # win2xcursor
-A python script to parse windows .ani cursors via xcursorgen.
+A python script to parse windows .ani cursors via xcursorgen.  
 Inspired from the desire to bring NOiiRE's [beautiful cursors](https://ko-fi.com/noiire/shop) to linux.
 
 ## Installation
@@ -30,7 +30,7 @@ $ python3 win2xcursor.py --theme=<ThemeName>
 
 ### config.toml
 The config file for this project consists of a series of cursor items, each of which with the next structure:
-```toml
+```conf
 [[cursor]]
 file = ... # The name of your ANI file, ending on .ani
 name = ... # The name of the associated cursor
@@ -43,5 +43,7 @@ A template `config.toml` file has been provided in this repository, which contai
 
 ## Video Showcase
 
+https://github.com/user-attachments/assets/22868d14-59f3-4dbf-b613-9d48d116f936
 
-![](showcases/noiire.mp4)
+
+
