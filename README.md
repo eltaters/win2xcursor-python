@@ -11,6 +11,14 @@ $ source venv/bin/activate
 $ pip3 install -r requirements.txt
 ```
 
+You will also need to install xcursorgen for the script to generate the cursors:
+```bash
+# Arch
+sudo pacman -S xcursorgen
+
+# Debian/Mint/Ubuntu
+sudo apt install xcursorgen
+```
 ## Usage
 Before using the script, you need to do the following:
 
