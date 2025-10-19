@@ -3,7 +3,7 @@ import os
 from io import BytesIO
 from PIL import Image
 import numpy as np
-import toml
+import tomllib
 import argparse
 import subprocess
 
@@ -134,8 +134,8 @@ args = parser.parse_args()
 
 # The script
 path = f"{args.path}/{args.theme}"
-with open(f"{path}/config.toml", "r") as f:
-    config = toml.load(f)
+with open(f"{path}/config.toml", "rb") as f:
+    config = tomllib.load(f)
 
 
 # =========================================================================== #
