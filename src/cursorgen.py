@@ -2,9 +2,28 @@ import struct
 from io import BytesIO
 from PIL import Image
 import numpy as np
+from typing import Tuple
 
 
-def parse_ani(anifile, path):
+def parse_ani(anifile: str, path: str) -> Tuple[int, int, int, int, bytes]:
+    """
+    Parses initial contents of a RIFF formatted .ani file.
+
+    Args:
+        anifile: Name of the file
+        path: Base path for the cursor theme
+
+    Returns:
+        Tuple: Quintuple with relevant values for file conversion.
+                - Frames in the file
+                - Steps in the animation (a higher value means frames are used
+                  more than once)
+                - Time per frame (in 1/60s)
+                - File flags
+                - File buffer starting at the location of the LIST of frames
+    Raises:
+        ValueError: on an incorrect file type or a file with the wrong size.
+    """
     with open(f"{path}/ani/{anifile}", "rb") as f:
         data = f.read()
 
@@ -17,6 +36,8 @@ def parse_ani(anifile, path):
 
     if size + 8 != len(data):
         raise ValueError(f"Expected file size {size + 8}, got {len(data)}")
+
+    # TODO: parse author and title fields if they exist
 
     rifftype, anih = struct.unpack_from("<4s4s", data, offset)
     offset += struct.calcsize("<4s4s")
@@ -34,7 +55,21 @@ def parse_ani(anifile, path):
     return frames, steps, jifrate, fl, data[offset:]
 
 
-def ico_to_png(data, offset):
+def ico_to_png(data: bytes, offset: int) -> Tuple:
+    """
+    Transforms an .ico buffer into a PNG image.
+
+    Args:
+        data (bytes): buffer containing .ico data
+        offset (int): starting position for the .ico
+
+    Returns:
+        Tuple: PNG image, x/y hotspots, offset at the end of the .ico
+
+    Raises:
+        ValueError: if the .ico is not a cursor, which meansit does not have a
+                    x/y hotspot.
+    """
     _, icolength = struct.unpack_from("<4sI", data, offset)
     offset += struct.calcsize("<4sI")
 
@@ -59,8 +94,23 @@ def ico_to_png(data, offset):
     return img, x, y, offset + icolength
 
 
-def get_frame_sequence(data, steps):
+def get_frame_sequence(data: bytes, steps: int) -> list:
+    """
+    Finds the sequence of frames in an .ani file.
+
+    Args:
+        data (bytes): ani file buffer.
+        steps (int): expected number of frames in the sequence.
+
+    Returns:
+        list: Frame sequence.
+
+    """
     seqoffset = data.find(b"seq") + 4
+
+    if seqoffset == -1:
+        return list(range(steps))
+
     seqsteps = struct.unpack_from("<I", data, seqoffset)[0] / 4
 
     # NOTE: if this matches we're probably not looking at random seq bytes
@@ -74,10 +124,20 @@ def get_frame_sequence(data, steps):
 
 
 def cursorfile_from_ani(anifile: str, path: str):
+    """
+    Generates a .cursor file from an .ani file.
+
+    Args:
+        anifile (str): Name of the ani file.
+        path (str): Base theme path.
+
+    Returns:
+        str: Path where the .cursor file was written
+    """
     frames, steps, jifrate, fl, data = parse_ani(anifile, path)
     paths = []
     cpath = f"{path}/xcursorfiles/{anifile[:-4]}.cursor"
-    seq = get_frame_sequence(data, steps) if fl & 0x2 else list(range(steps))
+    seq = get_frame_sequence(data, steps)
 
     # The last 'LIST' element in an ani file points to icons
     offset = data.rfind(b"LIST") + struct.calcsize("<4sI4s")  # 'LIST' + size + 'fram'
