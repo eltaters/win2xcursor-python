@@ -76,9 +76,9 @@ def ico_to_png(data: bytes, offset: int) -> Tuple:
 
     # Check .ico type -> 2 contains X/Y offsets
     if (struct.unpack_from("<H", data, offset + 2)[0]) != 2:
-        raise ValueError("Frame is not a cursor")
-
-    x, y = struct.unpack_from("<HH", data, offset + 10)
+        x, y = 0, 0
+    else:
+        x, y = struct.unpack_from("<HH", data, offset + 10)
 
     with Image.open(BytesIO(data[offset : offset + icolength])) as img:
         img = img.convert("RGBA")
