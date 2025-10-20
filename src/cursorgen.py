@@ -1,6 +1,6 @@
 import struct
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 from typing import Tuple
 import logging
@@ -124,13 +124,14 @@ def get_frame_sequence(data: bytes, steps: int) -> list:
     ]
 
 
-def cursorfile_from_ani(anifile: str, path: str):
+def cursorfile_from_ani(anifile: str, path: str, scale: int):
     """
     Generates a .cursor file from an .ani file.
 
     Args:
         anifile (str): Name of the ani file.
         path (str): Base theme path.
+        scale (int): Cursor resize scale. Recommended for smaller cursors
 
     Returns:
         str: Path where the .cursor file was written
@@ -155,7 +156,10 @@ def cursorfile_from_ani(anifile: str, path: str):
     for i in range(frames):
         index = str(i + 1).zfill(len(str(frames)))
         img, x, y, offset = ico_to_png(data, offset)
-        size = img.width
+        size = img.width * scale
+
+        if scale > 1:
+            img = ImageOps.scale(img, scale, Image.Resampling.NEAREST)
 
         img.save(f"{path}/frames/{anifile[:-4]}{index}.png")
         paths.append(f"./frames/{anifile[:-4]}{index}.png")
@@ -163,6 +167,8 @@ def cursorfile_from_ani(anifile: str, path: str):
     # Create the .cursor file
     with open(cpath, "w") as f:
         for i in range(len(seq)):
-            f.write(f"{size} {x} {y} {paths[seq[i]]} {1000 * jifrate / 60}\n")
+            f.write(
+                f"{size} {x * scale} {y * scale} {paths[seq[i]]} {1000 * jifrate / 60}\n"
+            )
 
     return cpath

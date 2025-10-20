@@ -43,6 +43,8 @@ if not config.get("cursor"):
     )
     exit(-1)
 
+scale = max(1, int(config.get("scale", 1)))
+
 for cursor in config["cursor"][:]:
     if (
         not cursor.get("name")
@@ -84,7 +86,7 @@ print(" " * 28 + " WIN2XCUR PYTHON SCRIPT " + " " * 28)
 print("=" * 80)
 for cursor in config["cursor"]:
     logging.info(f"Creating .cursor file for {cursor['file']}")
-    cpath = cursorfile_from_ani(cursor["file"], path)
+    cpath = cursorfile_from_ani(cursor["file"], path, scale)
 
     # create the cursor with xcursorgen
     logging.info(f"Creating cursor: {cursor['name']}")
