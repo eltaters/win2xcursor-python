@@ -46,9 +46,9 @@ aliases =  [...] # Cursor aliases
 ```
 
 The `aliases` property should be defined as an empty list `[]` when a cursor has no defined aliases.
+Additionally, smaller cursors can also be **scaled** by specifying a `scale=<number>`, property.
 
 A template `config.toml` file has been provided in this repository, which contains most of the standard cursor names/aliases and a few additional associations for normally lacking icons.
-
 ## Video Showcase
 
 https://github.com/user-attachments/assets/22868d14-59f3-4dbf-b613-9d48d116f936

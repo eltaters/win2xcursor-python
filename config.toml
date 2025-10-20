@@ -1,3 +1,6 @@
+# The scale of the cursor. Not really necessary to define unless you want to
+# upscale it.
+scale = 1
 
 # copy & openhand
 [[cursor]]
