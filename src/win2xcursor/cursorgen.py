@@ -1,12 +1,14 @@
+import logging
 import struct
 from io import BytesIO
-from PIL import Image, ImageOps
+
 import numpy as np
-from typing import Tuple
-import logging
+from PIL import Image, ImageOps
+
+logger = logging.getLogger(__name__)
 
 
-def parse_ani(anifile: str, path: str) -> Tuple[int, int, int, int, bytes]:
+def parse_ani(anifile: str, path: str) -> tuple[int, int, int, int, bytes]:
     """
     Parses initial contents of a RIFF formatted .ani file.
 
@@ -56,7 +58,7 @@ def parse_ani(anifile: str, path: str) -> Tuple[int, int, int, int, bytes]:
     return frames, steps, jifrate, fl, data[offset:]
 
 
-def ico_to_png(data: bytes, offset: int) -> Tuple:
+def ico_to_png(data: bytes, offset: int) -> tuple[Image.Image, int, int, int]:
     """
     Transforms an .ico buffer into a PNG image.
 
@@ -95,7 +97,7 @@ def ico_to_png(data: bytes, offset: int) -> Tuple:
     return img, x, y, offset + icolength
 
 
-def get_frame_sequence(data: bytes, steps: int) -> list:
+def get_frame_sequence(data: bytes, steps: int) -> list[int]:
     """
     Finds the sequence of frames in an .ani file.
 
@@ -120,11 +122,12 @@ def get_frame_sequence(data: bytes, steps: int) -> list:
         return list(range(steps))
 
     return [
-        struct.unpack_from("<I", data, seqoffset + 4 * (i + 1))[0] for i in range(steps)
+        struct.unpack_from("<I", data, seqoffset + 4 * (i + 1))[0]
+        for i in range(steps)
     ]
 
 
-def cursorfile_from_ani(anifile: str, path: str, scale: int):
+def cursorfile_from_ani(anifile: str, path: str, scale: int) -> str:
     """
     Generates a .cursor file from an .ani file.
 
@@ -142,14 +145,18 @@ def cursorfile_from_ani(anifile: str, path: str, scale: int):
     seq = get_frame_sequence(data, steps)
 
     # The last 'LIST' element in an ani file points to icons
-    offset = data.rfind(b"LIST") + struct.calcsize("<4sI4s")  # 'LIST' + size + 'fram'
+    offset = data.rfind(b"LIST") + struct.calcsize(
+        "<4sI4s"
+    )  # 'LIST' + size + 'fram'
 
-    logging.debug(f"File metadata for {path}/ani/{anifile}")
-    logging.debug(f"\t- Frames: {frames}")
-    logging.debug(f"\t- Steps: {steps}")
-    logging.debug(f"\t- Rate: {jifrate} ({int(1000 * jifrate / 60)} ms)")
-    logging.debug(f"\t- Flags: AF_ICON {(fl & 0x1) > 0} AF_SEQUENCE {(fl & 0x2) > 0}")
-    logging.debug(f"\t- Sequence: {seq}\n")
+    logger.debug(f"File metadata for {path}/ani/{anifile}")
+    logger.debug(f"\t- Frames: {frames}")
+    logger.debug(f"\t- Steps: {steps}")
+    logger.debug(f"\t- Rate: {jifrate} ({int(1000 * jifrate / 60)} ms)")
+    logger.debug(
+        f"\t- Flags: AF_ICON {(fl & 0x1) > 0} AF_SEQUENCE {(fl & 0x2) > 0}"
+    )
+    logger.debug(f"\t- Sequence: {seq}\n")
 
     # Transform each .ico frame into a PNG
     x, y, size = 0, 0, 0
