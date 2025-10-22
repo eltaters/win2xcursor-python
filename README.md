@@ -8,9 +8,15 @@ Inspired from the desire to bring NOiiRE's [beautiful cursors](https://ko-fi.com
 This script requires the `numpy` and `pillow` libaries, which you can set up through a python virtual environment:
 
 ```bash
+# Set-up with pip
 $ python3 -m venv venv
 $ source venv/bin/activate
 $ pip3 install .
+
+# Set-up with uv
+$ uv venv
+$ source .venv/bin/activate
+$ uv sync
 ```
 
 You will also need to install xcursorgen for the script to generate the cursors:
