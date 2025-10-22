@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "win2xcursor"
+requires-python = ">=3.13"
+dependencies = ["numpy==2.3.4", "pillow==12.0.0"]
+dynamic = ["version"]
+
+[project.scripts]
+win2xcursor = "win2xcursor.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.ruff]
+line-length = 79
+
+[dependency-groups]
+dev = ["isort>=6.0.1", "mypy>=1.18.2", "ruff>=0.13.2"]
