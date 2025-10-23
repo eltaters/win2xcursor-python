@@ -1,4 +1,5 @@
 import logging
+import pathlib
 import struct
 from io import BytesIO
 
@@ -8,13 +9,12 @@ from PIL import Image, ImageOps
 logger = logging.getLogger(__name__)
 
 
-def parse_ani(anifile: str, path: str) -> tuple[int, int, int, int, bytes]:
+def parse_ani(ani_file: pathlib.Path) -> tuple[int, int, int, int, bytes]:
     """
-    Parses initial contents of a RIFF formatted .ani file.
+    Parses up to the header of an ANI formatted file.
 
     Args:
-        anifile: Name of the file
-        path: Base path for the cursor theme
+        ani_file (pathlib.Path): Path to the ANI file.
 
     Returns:
         Tuple: Quintuple with relevant values for file conversion.
@@ -25,9 +25,9 @@ def parse_ani(anifile: str, path: str) -> tuple[int, int, int, int, bytes]:
                 - File flags
                 - File buffer starting at the location of the LIST of frames
     Raises:
-        ValueError: on an incorrect file type or a file with the wrong size.
+        ValueError: incorrect file type or a file with the wrong size.
     """
-    with open(f"{path}/ani/{anifile}", "rb") as f:
+    with open(ani_file, "rb") as f:
         data = f.read()
 
     offset = struct.calcsize("<4sI")
@@ -67,11 +67,10 @@ def ico_to_png(data: bytes, offset: int) -> tuple[Image.Image, int, int, int]:
         offset (int): starting position for the .ico
 
     Returns:
-        Tuple: PNG image, x/y hotspots, offset at the end of the .ico
+        tuple: PNG image, x/y hotspots, offset at the end of the .ico
 
     Raises:
-        ValueError: if the .ico is not a cursor, which meansit does not have a
-                    x/y hotspot.
+        ValueError: data is not in .ico format (no x/y hotspot).
     """
     _, icolength = struct.unpack_from("<4sI", data, offset)
     offset += struct.calcsize("<4sI")
@@ -127,29 +126,34 @@ def get_frame_sequence(data: bytes, steps: int) -> list[int]:
     ]
 
 
-def cursorfile_from_ani(anifile: str, path: str, scale: int) -> str:
+def cursorfile_from_ani(
+    ani_file: pathlib.Path,
+    xcursorfiles_dir: pathlib.Path,
+    frames_dir: pathlib.Path,
+    scale: int,
+) -> pathlib.Path:
     """
     Generates a .cursor file from an .ani file.
 
     Args:
-        anifile (str): Name of the ani file.
-        path (str): Base theme path.
+        ani_file (pathlib.Path): Name of the ani file.
+        xcursorfiles_dir (pathlib.Path): Path to `xcursorfiles` subdirectory.
+        frames_dir (pathlib.Path): Path to `frames` subdirectory.
         scale (int): Cursor resize scale. Recommended for smaller cursors
 
     Returns:
-        str: Path where the .cursor file was written
+        pathlib.Path: Path where the .cursor file was written
     """
-    frames, steps, jifrate, fl, data = parse_ani(anifile, path)
+    frames, steps, jifrate, fl, data = parse_ani(ani_file)
     paths = []
-    cpath = f"{path}/xcursorfiles/{anifile[:-4]}.cursor"
+    cursorfile = xcursorfiles_dir.joinpath(f"{ani_file.stem}.cursor")
     seq = get_frame_sequence(data, steps)
 
     # The last 'LIST' element in an ani file points to icons
-    offset = data.rfind(b"LIST") + struct.calcsize(
-        "<4sI4s"
-    )  # 'LIST' + size + 'fram'
+    # 'LIST' + size + 'fram'
+    offset = data.rfind(b"LIST") + struct.calcsize("<4sI4s")
 
-    logger.debug(f"File metadata for {path}/ani/{anifile}")
+    logger.debug(f"File metadata for {ani_file!s}")
     logger.debug(f"\t- Frames: {frames}")
     logger.debug(f"\t- Steps: {steps}")
     logger.debug(f"\t- Rate: {jifrate} ({int(1000 * jifrate / 60)} ms)")
@@ -168,14 +172,15 @@ def cursorfile_from_ani(anifile: str, path: str, scale: int) -> str:
         if scale > 1:
             img = ImageOps.scale(img, scale, Image.Resampling.NEAREST)
 
-        img.save(f"{path}/frames/{anifile[:-4]}{index}.png")
-        paths.append(f"./frames/{anifile[:-4]}{index}.png")
+        frame_file = frames_dir.joinpath(f"{ani_file.stem}{index}.png")
+        img.save(frame_file)
+        paths.append(frame_file)
 
     # Create the .cursor file
-    with open(cpath, "w") as f:
+    with open(cursorfile, "w") as f:
         for i in range(len(seq)):
             f.write(
                 f"{size} {x * scale} {y * scale} {paths[seq[i]]} {1000 * jifrate / 60}\n"
             )
 
-    return cpath
+    return cursorfile
