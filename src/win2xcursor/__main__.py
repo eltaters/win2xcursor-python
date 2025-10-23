@@ -56,6 +56,7 @@ def main() -> int:
 
     # Read and parse config file
     config_file = theme_dir.joinpath("config.toml")
+
     with open(config_file, "rb") as f:
         config = tomllib.load(f)
 
@@ -92,6 +93,9 @@ def main() -> int:
     # the script, I'll leave them there so the process is understood a bit    #
     # better and to manually handle part of the process if the script fails   #
     # ======================================================================= #
+
+    # Contains all of the ANI files.
+    ani_dir = theme_dir.joinpath("ani")
 
     # PNGs extracted from the ANI files.
     frames_dir = theme_dir.joinpath("frames")
