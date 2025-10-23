@@ -1,9 +1,8 @@
 import argparse
 import logging
-import os
+import pathlib
 import subprocess
 import sys
-import textwrap
 import tomllib
 
 from . import __version__
@@ -14,7 +13,7 @@ logger = logging.getLogger(__package__)
 
 def main() -> int:
     handler = logging.StreamHandler(stream=sys.stderr)
-    formatter = logging.Formatter(fmt="%(message)s")
+    formatter = logging.Formatter(fmt="%(levelname)s %(message)s")
     handler.setFormatter(formatter)
 
     logger.addHandler(handler)
@@ -29,8 +28,8 @@ def main() -> int:
     parser.add_argument(
         "--path",
         help="Path base where the new cursor will reside. Defaults to ~/.local/share/icons",
-        type=str,
-        default=os.path.expandvars("$HOME/.local/share/icons"),
+        type=pathlib.Path,
+        default=pathlib.Path.home().joinpath(".local", "share", "icons"),
     )
     parser.add_argument(
         "--theme",
@@ -46,15 +45,22 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    # Where X11 searches for cursor themes.
+    icons_dir: pathlib.Path = args.path
+
+    # Path to the custom cursor theme.
+    theme_dir = icons_dir.joinpath(args.theme)
+
+    # Contains all of the ANI files.
+    ani_dir = theme_dir.joinpath("ani")
+
     # Read and parse config file
-    path = f"{args.path}/{args.theme}"
-    with open(f"{path}/config.toml", "rb") as f:
+    config_file = theme_dir.joinpath("config.toml")
+    with open(config_file, "rb") as f:
         config = tomllib.load(f)
 
     if not config.get("cursor"):
-        logger.error(
-            f"No cursors specified in {path}/config.toml, exiting install script..."
-        )
+        logger.error(f"No cursors specified in {config_file}")
         return 1
 
     scale = max(1, int(config.get("scale", 1)))
@@ -73,10 +79,8 @@ def main() -> int:
                 "Please refer to the config.toml template to see how to fill these values"
             )
             return 1
-        if not os.path.exists(f"{path}/ani/{cursor['file']}"):
-            logger.info(
-                f"Could not find file {path}/{cursor['file']}, discarding from script"
-            )
+        if not (cursor_file := ani_dir.joinpath(cursor["file"])).exists():
+            logger.info(f"Cannot find file {cursor_file}, skipping")
             config["cursor"].remove(cursor)
 
     # ======================================================================= #
@@ -88,51 +92,75 @@ def main() -> int:
     # the script, I'll leave them there so the process is understood a bit    #
     # better and to manually handle part of the process if the script fails   #
     # ======================================================================= #
-    os.makedirs(f"{path}/xcursorfiles", exist_ok=True)
-    os.makedirs(f"{path}/frames", exist_ok=True)
-    os.makedirs(f"{path}/cursors", exist_ok=True)
+
+    # PNGs extracted from the ANI files.
+    frames_dir = theme_dir.joinpath("frames")
+    frames_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generated `.cursor` files.
+    xcursorfiles_dir = theme_dir.joinpath("xcursorfiles")
+    xcursorfiles_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generated Xcursors
+    cursors_dir = theme_dir.joinpath("cursors")
+    cursors_dir.mkdir(parents=True, exist_ok=True)
 
     # Main script
 
     print("=" * 80, file=sys.stderr)
-    print(" " * 28 + " WIN2XCUR PYTHON SCRIPT " + " " * 28, file=sys.stderr)
+    print("WIN2XCUR PYTHON SCRIPT".center(80, " "), file=sys.stderr)
     print("=" * 80, file=sys.stderr)
+
     for cursor in config["cursor"]:
         logger.info(f"Creating .cursor file for {cursor['file']}")
-        cpath = cursorfile_from_ani(cursor["file"], path, scale)
+
+        assert "file" in cursor, cursor.keys()
+        ani_file = ani_dir.joinpath(cursor["file"])
+        cursorfile = cursorfile_from_ani(
+            ani_file,
+            xcursorfiles_dir,
+            frames_dir,
+            scale,
+        )
+
+        assert "name" in cursor, cursor.keys()
+        xcursor_file = cursors_dir.joinpath(cursor["name"])
 
         # create the cursor with xcursorgen
-        logger.info(f"Creating cursor: {cursor['name']}")
+        logger.info(f"Creating cursor: {xcursor_file.name}")
         subprocess.run(
             [
                 "xcursorgen",
-                cpath,
-                f"{path}/cursors/{cursor['name']}",
+                cursorfile,
+                xcursor_file,
             ],
             check=True,
-            cwd=path,
+            cwd=theme_dir,
         )
 
         # create all defined aliases
-        logger.info(
-            f"Creating aliases: {textwrap.fill(', '.join(cursor['aliases']), width=62, subsequent_indent=' ' * 18)}\n"
-        )
         for alias in cursor["aliases"]:
+            logger.info(f"Creating alias: {alias}")
+            alias_file = cursors_dir.joinpath(alias)
+
             subprocess.run(
                 [
                     "ln",
                     "-s",
-                    f"{path}/cursors/{cursor['name']}",
-                    f"{path}/cursors/{alias}",
+                    xcursor_file,
+                    alias_file,
                 ],
                 check=True,
-                cwd=path,
+                cwd=theme_dir,
             )
+
+        print()
         print("-" * 80, file=sys.stderr, end="\n\n")
 
     # finally, create the index.theme
-    logger.info("Writing index.theme")
-    with open(f"{path}/index.theme", "w") as f:
+    index_theme = theme_dir.joinpath("index.theme")
+    logger.info(f"Writing {index_theme.name}")
+    with open(index_theme, "w") as f:
         f.write("[Icon Theme]\n")
         f.write(f"Name={args.theme}\n")
         f.write("Inherits=breeze_cursors\n")  # defaults for missing icons
