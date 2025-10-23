@@ -174,7 +174,7 @@ def cursorfile_from_ani(
 
         frame_file = frames_dir.joinpath(f"{ani_file.stem}{index}.png")
         img.save(frame_file)
-        paths.append(frame_file)
+        paths.append(f"./frames/{ani_file.stem}{index}.png")
 
     # Create the .cursor file
     with open(cursorfile, "w") as f:
