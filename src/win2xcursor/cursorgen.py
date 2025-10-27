@@ -1,10 +1,13 @@
 import logging
+import os.path
 import pathlib
 import struct
 from io import BytesIO
 
 import numpy as np
 from PIL import Image, ImageOps
+
+CURSOR_ENTRY_FMT = "{size} {x} {y} {path} {rate}\n"
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +150,7 @@ def cursorfile_from_ani(
     frames, steps, jifrate, fl, data = parse_ani(ani_file)
     paths = []
     cursorfile = xcursorfiles_dir.joinpath(f"{ani_file.stem}.cursor")
-    seq = get_frame_sequence(data, steps)
+    sequence = get_frame_sequence(data, steps)
 
     # The last 'LIST' element in an ani file points to icons
     # 'LIST' + size + 'fram'
@@ -160,7 +163,7 @@ def cursorfile_from_ani(
     logger.debug(
         f"\t- Flags: AF_ICON {(fl & 0x1) > 0} AF_SEQUENCE {(fl & 0x2) > 0}"
     )
-    logger.debug(f"\t- Sequence: {seq}\n")
+    logger.debug(f"\t- Sequence: {sequence}\n")
 
     # Transform each .ico frame into a PNG
     x, y, size = 0, 0, 0
@@ -174,13 +177,22 @@ def cursorfile_from_ani(
 
         frame_file = frames_dir.joinpath(f"{ani_file.stem}{index}.png")
         img.save(frame_file)
-        paths.append(f"./frames/{ani_file.stem}{index}.png")
+        paths.append(os.path.sep.join(frame_file.parts[-2:]))
 
     # Create the .cursor file
-    with open(cursorfile, "w") as f:
-        for i in range(len(seq)):
-            f.write(
-                f"{size} {x * scale} {y * scale} {paths[seq[i]]} {1000 * jifrate / 60}\n"
-            )
+    # TODO(Nic): Figure out how to decouple this for testing.
+    buffer = ""
+
+    for seq in sequence:
+        buffer += CURSOR_ENTRY_FMT.format(
+            size=size,
+            x=x * scale,
+            y=y * scale,
+            path=paths[seq],
+            rate=1000 * jifrate / 60,
+        )
+
+    cursorfile.write_text(buffer)
+    logger.info(f"created file: {cursorfile}")
 
     return cursorfile
