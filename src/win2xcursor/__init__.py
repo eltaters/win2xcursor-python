@@ -1,4 +1,4 @@
-from .config import Config, Cursor
+from win2xcursor.config import Config, Cursor
 
 __all__ = ("Cursor", "Config")
 
