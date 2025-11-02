@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 import logging
 import pathlib
 import struct
-from msgspec import Struct
 
+from msgspec import Struct
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class AniData:
         Constructor method for this class.
 
         Args:
-            ani_file (Path): Source file path.
+            buffer (bytes): ANI data.
         """
         self._data = buffer
         self._offset = 0
@@ -131,7 +132,7 @@ class AniData:
 
         return cls(buffer=buffer)
 
-    def unpack(self, format: str):
+    def unpack(self, format: str) -> tuple:
         """
         Unpacks a set of values according to format.
         Automatically advances the internal offset by formatsize.
@@ -141,7 +142,7 @@ class AniData:
                           the struct module.
 
         Returns:
-            tuple: Unpacked values.
+            tuple: Unpacked values according to format.
         """
         values = struct.unpack_from(format, self._data, self._offset)
         self._offset += struct.calcsize(format)
@@ -218,7 +219,7 @@ class AniData:
 
         return [self.header.jifrate] * count
 
-    def _frames(self):
+    def _frames(self) -> list[bytes]:
         """
         Parses all ico files from the internal data buffer.
 
