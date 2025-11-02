@@ -6,25 +6,19 @@ import sys
 
 import msgspec.toml
 
-from . import __version__
-from .config import Config
-from .cursorgen import cursorfile_from_ani
+from win2xcursor import __version__
+from win2xcursor.ani import AniData
+from win2xcursor.config import Config
+from win2xcursor.cursor import CursorFile
+from win2xcursor.frames import FrameScaler
 
 logger = logging.getLogger(__package__)
 
 
-def main() -> int:
-    handler = logging.StreamHandler(stream=sys.stderr)
-    formatter = logging.Formatter(fmt="{levelname} {message}", style="{")
-    handler.setFormatter(formatter)
-
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
-
-    # Argument parsing
+def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="win2xcursor",
-        description="Python script to transform .ani files into xcursors",
+        description="Python script to transform .ani files into Xcursors",
         epilog=(
             "This script expects [theme-dir] to be an existing directory with "
             "a config.toml, and your ANI files to be stored in [theme-dir]/ani"
@@ -42,12 +36,26 @@ def main() -> int:
         action="version",
         version=f"{__package__} {__version__}",
     )
+    return parser
+
+
+def main() -> int:
+    handler = logging.StreamHandler(stream=sys.stderr)
+    formatter = logging.Formatter(fmt="{levelname} {message}", style="{")
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+    parser = setup_parser()
     args = parser.parse_args()
 
     # ======================================================================= #
     # You can delete the xcursorfiles and frames directories after running    #
     # the script, I'll leave them there so the process is understood a bit    #
     # better and to manually handle part of the process if the script fails   #
+    # ======================================================================= #
+    # rm -r ./xcursorfiles ./frames ./cursors index.theme
     # ======================================================================= #
 
     # Path to the custom cursor theme.
@@ -83,6 +91,7 @@ def main() -> int:
     try:
         config = msgspec.toml.decode(buffer, type=Config)
     except msgspec.ValidationError as err:
+        # TODO(Nic): Nicer error message.
         logger.error(f"invalid config: {err}")
         return 1
 
@@ -97,22 +106,22 @@ def main() -> int:
             )
             continue
 
-        cursorfile = cursorfile_from_ani(
-            ani_file,
-            xcursorfiles_dir,
-            frames_dir,
-            config.scale,
-        )
+        data = AniData.from_file(ani_file)
+        frames = FrameScaler(data.frames, name=ani_file.stem)
 
+        # Define and save the `.cursor` file.
+        xconfig = CursorFile(data, frames_dir)
+        xconfig.add(frames.get_frames(config.scale))
+        xconfig_file = xcursorfiles_dir.joinpath(ani_file.stem)
+        xconfig.save(xconfig_file)
+
+        # Create the cursor with `xcursorgen`.
         xcursor_file = cursors_dir.joinpath(cursor.name)
-
-        # create the cursor with xcursorgen
-        logger.info(f"Creating cursor: {xcursor_file.name}")
         try:
             _ = subprocess.run(
                 [
                     "xcursorgen",
-                    cursorfile,
+                    xconfig_file,
                     xcursor_file,
                 ],
                 check=True,
@@ -120,47 +129,67 @@ def main() -> int:
             )
         except subprocess.CalledProcessError as err:
             logger.error(f"failed to create Xcursor: {err}")
-            return 1
+            continue
+        else:
+            logger.info(f"created cursor: {xcursor_file.name}")
 
-        # create all defined aliases
         for alias in cursor.aliases:
-            alias_file = cursors_dir.joinpath(alias)
-            alias_file.unlink(missing_ok=True)
-
-            try:
-                _ = subprocess.run(
-                    [
-                        "ln",
-                        "--symbolic",
-                        xcursor_file,
-                        alias_file,
-                    ],
-                    cwd=theme_dir,
-                    capture_output=True,
-                    check=True,
-                    text=True,
-                )
-            except subprocess.CalledProcessError as err:
-                logger.debug(f"command failed: {err.cmd}")
-                reason = err.stderr.strip().rsplit(": ", maxsplit=1)[-1]
-                logger.error(f"failed to create alias: {alias}: {reason}")
-            else:
-                logger.info(f"created alias: {alias}")
+            create_alias(alias, xcursor_file, theme_dir, cursors_dir)
 
         print("", file=sys.stderr)
         print("-" * 80, file=sys.stderr, end="\n\n")
 
     # finally, create the index.theme
+    create_index_theme(theme_dir)
+
+    logger.info("Finished creating cursors! 🚀🚀")
+    return 0
+
+
+def create_alias(
+    alias: str,
+    xcursor_file: pathlib.Path,
+    theme_dir: pathlib.Path,
+    cursors_dir: pathlib.Path,
+) -> None:
+    alias_file = cursors_dir.joinpath(alias)
+    alias_file.unlink(missing_ok=True)
+
+    try:
+        _ = subprocess.run(
+            [
+                "ln",
+                "--symbolic",
+                xcursor_file,
+                alias_file,
+            ],
+            cwd=theme_dir,
+            capture_output=True,
+            check=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as err:
+        logger.debug(f"command failed: {err.cmd}")
+        reason = err.stderr.strip().rsplit(": ", maxsplit=1)[-1]
+        logger.error(f"failed to create alias: {alias}: {reason}")
+    else:
+        logger.info(f"created alias: {alias}")
+
+
+def create_index_theme(theme_dir: pathlib.Path) -> None:
     index_theme = theme_dir.joinpath("index.theme")
-    index_theme.write_text(
+    text = (
         "[Icon Theme]\n"
         + f"Name={theme_dir.name}\n"
         + "Inherits=breeze_cursors"
     )
-    logger.info(f"created file: {index_theme.name}")
 
-    logger.info("Finished creating cursors! 🚀🚀")
-    return 0
+    try:
+        index_theme.write_text(text)
+    except OSError as err:
+        logger.error(f"failed to create index.theme: {err}")
+    else:
+        logger.info(f"created file: {index_theme.name}")
 
 
 if __name__ == "__main__":
