@@ -116,13 +116,13 @@ def main() -> int:
         xconfig.save(xconfig_file)
 
         # Create the cursor with `xcursorgen`.
-        xcursor_file = cursors_dir.joinpath(cursor.name)
+        cursor_file = cursors_dir.joinpath(cursor.name)
         try:
             _ = subprocess.run(
                 [
                     "xcursorgen",
                     xconfig_file,
-                    xcursor_file,
+                    cursor_file,
                 ],
                 check=True,
                 cwd=theme_dir,
@@ -131,10 +131,10 @@ def main() -> int:
             logger.error(f"failed to create Xcursor: {err}")
             continue
         else:
-            logger.info(f"created cursor: {xcursor_file.name}")
+            logger.info(f"created cursor: {cursor_file.name}")
 
         for alias in cursor.aliases:
-            create_alias(alias, xcursor_file, theme_dir, cursors_dir)
+            create_alias(alias, cursor_file, theme_dir, cursors_dir)
 
         print("", file=sys.stderr)
         print("-" * 80, file=sys.stderr, end="\n\n")
