@@ -2,6 +2,8 @@ import logging
 import os
 import pathlib
 import struct
+from typing import NamedTuple
+from msgspec import Struct
 from io import BytesIO
 
 import numpy as np
@@ -10,8 +12,56 @@ from PIL import Image, ImageOps
 from win2xcursor.ani import AniData
 
 logger = logging.getLogger(__name__)
-
 CURSOR_ENTRY_FMT = "{size} {x} {y} {path} {rate}\n"
+
+
+class ImageData(Struct):
+    """
+    Represents data from a set of PNG frames used to create
+    a cursor.
+
+    Attributes:
+        images (list): List of images with shared metadata.
+        x (int): X hotspot coordinate.
+        y (int): Y hotspot coordinate.
+        scale (int): Scaling multiplier applied to the image.
+    """
+
+    images: list[Image.Image]
+    x: int
+    y: int
+    scale: int
+
+    @property
+    def size(self) -> int:
+        """int: size of the image"""
+        return self.images[0].width
+
+    def indexed_names(self, base_name: str) -> list[str]:
+        """
+        Wrapper to assign a filename index to every image in the struct.
+
+        Args:
+            base_name (str): Name of the original ANI file.
+
+        Returns:
+            list: Indexed names of every frame.
+        """
+
+        names = []
+
+        for i in range(len(self.images)):
+            index = str(i + 1).zfill(max(2, len(str(len(self.images)))))
+            names.append(f"{base_name}{index}x{self.scale}.png")
+
+        return names
+
+
+class Resolution(NamedTuple):
+    """Cursor resolution representation"""
+
+    image_data: ImageData
+    file_names: list[str]
 
 
 def ico2png(icos: list[bytes], scale: int = 1):
@@ -49,7 +99,7 @@ def ico2png(icos: list[bytes], scale: int = 1):
 
             images.append(img)
 
-    return images, (x * scale, y * scale), images[0].width
+    return ImageData(images, x * scale, y * scale, scale)
 
 
 class Cursor:
@@ -57,59 +107,67 @@ class Cursor:
     Wrapper class to generate .cursor from ANI.
 
     Attributes:
-        dry (bool): Whether the generator is being run in dry mode.
-                    Regular mode saves any PNG images it saves from ANI files.
-                    Dry mode does not save the images.
-        framedir (Path): Location to store frames at.
+        resolutions (list): List of resolutions supported by this cursor.
+        cursor_file (Path): Output file for the cursor.
     """
 
-    def __init__(self, framedir: pathlib.Path, dry: bool):
-        self.dry = dry
-        self.framedir = framedir
+    resolutions: list[Resolution]
+    cursor_file: pathlib.Path
 
-    def from_ani(self, ani_file: pathlib.Path, scale: int) -> str:
+    def __init__(
+        self,
+        ani_file: pathlib.Path,
+        frames_dir: pathlib.Path,
+        cursor_dir: pathlib.Path,
+    ):
+        self.ani_file = ani_file
+        self.frames_dir = frames_dir
+        self.cursor_file = cursor_dir.joinpath(f"{ani_file.stem}.cursor")
+        self.resolutions = []
+
+        self.ani = AniData.from_file(ani_file)
+        logger.debug(f"File metadata for {ani_file!s}")
+        logger.debug(self.ani.header)
+
+    def add(self, scale: int):
         """
-        Generates a .cursor buffer from an ani file.
+        Adds a new resolution to this cursor.
 
         Args:
-            ani_file (Path): ANI file location.
             scale (int): Scaling applied to the extracted PNGs.
-
-        Returns:
-            str: xcursor file as a buffer.
-
         """
+        images = ico2png(self.ani.frames, scale)
+        self.resolutions.append(
+            Resolution(images, images.indexed_names(self.ani_file.stem))
+        )
 
+    def buffer(self) -> str:
+        """
+        Returns the buffer representation that will be written on the .cursor
+        file.
+        """
         buffer = ""
-        imgpaths = []
-        ani = AniData(ani_file)
-        images, (x, y), width = ico2png(ani.frames, scale)
 
-        logger.debug(f"File metadata for {ani_file!s}")
-        logger.debug(ani.header)
-
-        # Create relative image paths
-        for i in range(ani.header.frames):
-            index = str(i + 1).zfill(len(str(ani.header.frames)))
-            imgpaths.append(
-                self.framedir.joinpath(f"{ani_file.stem}{index}.png")
-            )
-
-        # Write the buffer
-        for i, rate, path in zip(ani.sequence, ani.rates, imgpaths):
-            buffer += CURSOR_ENTRY_FMT.format(
-                size=width,
-                x=x,
-                y=y,
-                path=os.path.sep.join(path.parts[-2:]),
-                rate=rate,
-            )
-
-        if self.dry is True:
-            return buffer
-
-        # Regular mode only: store the images
-        for img, path in zip(images, imgpaths):
-            img.save(path)
+        for r in self.resolutions:
+            for i, rate in zip(self.ani.sequence, self.ani.rates):
+                buffer += CURSOR_ENTRY_FMT.format(
+                    size=r.image_data.size,
+                    x=r.image_data.x,
+                    y=r.image_data.y,
+                    path=os.path.sep.join(
+                        [self.frames_dir.name, r.file_names[i]]
+                    ),
+                    rate=rate,
+                )
 
         return buffer
+
+    def save(self):
+        """
+        Writes the .cursor file with all specified resolutions.
+        """
+        for r in self.resolutions:
+            for img, path in zip(r.image_data.images, r.file_names):
+                img.save(self.frames_dir.joinpath(path))
+
+        self.cursor_file.write_text(self.buffer())

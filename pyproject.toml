@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "win2xcursor"
 requires-python = ">=3.13"
-dependencies = ["numpy==2.3.4", "pillow==12.0.0"]
+dependencies = ["numpy==2.3.4", "pillow==12.0.0", "msgspec>=0.19.0"]
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
@@ -25,9 +25,4 @@ where = ["src"]
 line-length = 79
 
 [dependency-groups]
-dev = [
-    "isort>=6.0.1",
-    "msgspec>=0.19.0",
-    "mypy>=1.18.2",
-    "ruff>=0.13.2",
-]
+dev = ["isort>=6.0.1", "mypy>=1.18.2", "ruff>=0.13.2"]

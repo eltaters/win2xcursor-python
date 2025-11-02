@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import pathlib
 import struct
@@ -35,21 +36,21 @@ class AniHeader(Struct):
     _fl: int
 
     @property
-    def jifrate(self):
-        """
-        Computed property for jifrate, transforms from jiffies into ms.
-        """
+    def jifrate(self) -> int:
+        """int: Default display rate, in milliseconds."""
         return int(1000 * self._jifrate / 60)
 
     @property
-    def icon(self):
-        return bool(self._fl & 0x1)
+    def icon(self) -> bool:
+        """bool: AF_ICON flag."""
+        return self._fl & 0x1 != 0
 
     @property
-    def sequence(self):
-        return bool(self._fl & 0x2)
+    def sequence(self) -> bool:
+        """bool: AF_SEQUENCE optional flag."""
+        return self._fl & 0x2 != 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"\tsize: {self.size}\n"
             f"\tframes: {self.frames}\n"
@@ -76,6 +77,59 @@ class AniData:
     sequence: list[int]
     rates: list[int]
     frames: list[bytes]
+
+    def __init__(self, buffer: bytes):
+        """
+        Constructor method for this class.
+
+        Args:
+            ani_file (Path): Source file path.
+        """
+        self._data = buffer
+        self._offset = 0
+
+        # RIFF header validation
+        ftype, size = self.unpack("<4sI")
+
+        if ftype != b"RIFF":
+            raise ValueError("Not a RIFF file")
+
+        if size + 8 != len(self._data):
+            raise ValueError(
+                f"Expected file size {size + 8}, got {len(self._data)}"
+            )
+
+        # RIFF type
+        rifftype, anih = self.unpack("<4s4s")
+        if rifftype != b"ACON" or anih != b"anih":
+            raise ValueError("Expected an .ani file")
+
+        # ANIH data
+        anihsize = self.unpack("<I")[0]
+        self.header = AniHeader(*self.unpack("<9I"))
+
+        assert anihsize == self.header.size, "Sizes differ"
+
+        # File options
+        self.sequence = self._sequence(self.header.sequence)
+        self.rates = self._rates(self.header.sequence)
+        self.frames = self._frames()
+
+    @classmethod
+    def from_file(cls, path: pathlib.Path) -> AniData:
+        """
+        Alternate constructor method from a file.
+
+        Args:
+            path (Path): ANI file path.
+
+        Returns:
+            AniData: instance constructed from path.
+        """
+        with open(path, "rb") as f:
+            buffer = f.read()
+
+        return cls(buffer=buffer)
 
     def unpack(self, format: str):
         """
@@ -188,42 +242,3 @@ class AniData:
             return frames
 
         return frames
-
-    def __init__(self, ani_file: pathlib.Path):
-        """
-        Constructor method for this class.
-
-        Args:
-            ani_file (Path): Source file path.
-        """
-        with open(ani_file, "rb") as f:
-            self._data = f.read()
-
-        self._offset = 0
-
-        # RIFF header validation
-        ftype, size = self.unpack("<4sI")
-
-        if ftype != b"RIFF":
-            raise ValueError("Not a RIFF file")
-
-        if size + 8 != len(self._data):
-            raise ValueError(
-                f"Expected file size {size + 8}, got {len(self._data)}"
-            )
-
-        # RIFF type
-        rifftype, anih = self.unpack("<4s4s")
-        if rifftype != b"ACON" or anih != b"anih":
-            raise ValueError("Expected an .ani file")
-
-        # ANIH data
-        anihsize = self.unpack("<I")[0]
-        self.header = AniHeader(*self.unpack("<9I"))
-
-        assert anihsize == self.header.size, "Sizes differ"
-
-        # File options
-        self.sequence = self._sequence(self.header.sequence)
-        self.rates = self._rates(self.header.sequence)
-        self.frames = self._frames()
