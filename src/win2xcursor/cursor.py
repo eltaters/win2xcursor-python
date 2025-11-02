@@ -9,23 +9,24 @@ logger = logging.getLogger(__name__)
 CURSOR_ENTRY_FMT = "{size} {x} {y} {path} {rate}\n"
 
 
-class Cursor:
+class CursorFile:
     """
     Wrapper class to generate .cursor from ANI.
 
     Attributes:
-        resolutions (list): List of resolutions supported by this cursor.
-        cursor_file (Path): Output file for the cursor.
+        sizes (list): List of resolutions supported by this cursor.
+        frames_dir (Path): Directory to store required frames.
+        ani (AniData): Ani file metadata.
     """
 
     sizes: list[Frames]
-    file: pathlib.Path
+    frames_dir: pathlib.Path
+    ani: AniData
 
     def __init__(
         self,
         ani: AniData,
         frames_dir: pathlib.Path,
-        output_file: pathlib.Path,
     ):
         """
         Constructor method for this class.
@@ -33,10 +34,8 @@ class Cursor:
         Args:
             ani (AniData): Ani file metadata.
             frames_dir (Path): Directory to store required frames.
-            output_file (Path): Output path for the .cursor file.
         """
         self.frames_dir = frames_dir
-        self.file = output_file
         self.sizes = []
         self.ani = ani
 
@@ -70,12 +69,15 @@ class Cursor:
 
         return buffer
 
-    def save(self):
+    def save(self, file: pathlib.Path):
         """
         Writes the .cursor file with all specified resolutions.
+
+        Args:
+            file (Path): Output path for the .cursor file.
         """
         for size in self.sizes:
             for frame, name in zip(size.images, size.frame_names):
                 frame.save(self.frames_dir.joinpath(name))
 
-        self.file.write_text(self.buffer())
+        file.write_text(self.buffer())
