@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import pathlib
 import struct
+from typing import Any, Iterable
 
 from msgspec import Struct
 
@@ -132,7 +133,7 @@ class AniData:
 
         return cls(buffer=buffer)
 
-    def unpack(self, format: str) -> tuple:
+    def unpack(self, format: str) -> tuple[Any, ...]:
         """
         Unpacks a set of values according to format.
         Automatically advances the internal offset by formatsize.
@@ -149,7 +150,7 @@ class AniData:
 
         return values
 
-    def findall(self, sub: bytes):
+    def findall(self, sub: bytes) -> Iterable[int]:
         """
         Generator method to find a bytearray in the file.
 

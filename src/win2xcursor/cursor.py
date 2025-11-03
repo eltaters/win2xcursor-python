@@ -39,7 +39,7 @@ class CursorFile:
         self.sizes = []
         self.ani = ani
 
-    def add(self, frames: Frames):
+    def add(self, frames: Frames) -> None:
         """
         Adds a new resolution to this cursor.
 
@@ -50,8 +50,7 @@ class CursorFile:
 
     def buffer(self) -> str:
         """
-        Returns the buffer representation that will be written on the .cursor
-        file.
+        Returns the text that will be written to the `.cursor` file.
         """
         buffer = ""
 
@@ -69,7 +68,7 @@ class CursorFile:
 
         return buffer
 
-    def save(self, file: pathlib.Path):
+    def save(self, file: pathlib.Path) -> None:
         """
         Writes the .cursor file with all specified resolutions.
 
