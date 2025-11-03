@@ -1,6 +1,7 @@
 import argparse
 import logging
 import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -31,6 +32,11 @@ def setup_parser() -> argparse.ArgumentParser:
         help="Path to the custom theme directory",
     )
     parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Use debug output and save intermediate build files",
+    )
+    parser.add_argument(
         "-V",
         "--version",
         action="version",
@@ -40,23 +46,15 @@ def setup_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    parser = setup_parser()
+    args = parser.parse_args()
+
     handler = logging.StreamHandler(stream=sys.stderr)
     formatter = logging.Formatter(fmt="{levelname} {message}", style="{")
     handler.setFormatter(formatter)
 
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
-
-    parser = setup_parser()
-    args = parser.parse_args()
-
-    # ======================================================================= #
-    # You can delete the xcursorfiles and frames directories after running    #
-    # the script, I'll leave them there so the process is understood a bit    #
-    # better and to manually handle part of the process if the script fails   #
-    # ======================================================================= #
-    # rm -r ./xcursorfiles ./frames ./cursors index.theme
-    # ======================================================================= #
+    logger.setLevel(logging.INFO if not args.debug else logging.DEBUG)
 
     # Path to the custom cursor theme.
     theme_dir: pathlib.Path = args.theme_dir
@@ -104,6 +102,8 @@ def main() -> int:
             logger.warning(
                 f"{cursor.name}: file not found: {cursor.file}; skipping"
             )
+            print("", file=sys.stderr)
+            print("-" * 80, file=sys.stderr, end="\n\n")
             continue
 
         data = AniData.from_file(ani_file)
@@ -139,8 +139,13 @@ def main() -> int:
         print("", file=sys.stderr)
         print("-" * 80, file=sys.stderr, end="\n\n")
 
-    # finally, create the index.theme
     create_index_theme(theme_dir)
+
+    if not args.debug:
+        shutil.rmtree(xcursorfiles_dir)
+        logger.info(f"deleted directory: {xcursorfiles_dir}")
+        shutil.rmtree(frames_dir)
+        logger.info(f"deleted directory: {frames_dir}")
 
     logger.info("Finished creating cursors! 🚀🚀")
     return 0
