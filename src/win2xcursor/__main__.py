@@ -37,6 +37,11 @@ def setup_parser() -> argparse.ArgumentParser:
         help="Use debug output and save intermediate build files",
     )
     parser.add_argument(
+        "--ignore-hotspots",
+        action="store_true",
+        help="Ignore x/y hotspots for the cursor",
+    )
+    parser.add_argument(
         "-V",
         "--version",
         action="version",
@@ -107,7 +112,11 @@ def main() -> int:
             continue
 
         data = AniData.from_file(ani_file)
-        frames = FrameScaler(data.frames, name=ani_file.stem)
+        frames = FrameScaler(
+            data.frames,
+            name=ani_file.stem,
+            ignore_hotspots=args.ignore_hotspots,
+        )
 
         # Define and save the `.cursor` file.
         xconfig = CursorFile(data, frames_dir)

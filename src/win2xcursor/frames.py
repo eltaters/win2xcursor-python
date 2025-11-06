@@ -47,7 +47,7 @@ class FrameScaler:
 
     """
 
-    def __init__(self, icos: list[bytes], name: str):
+    def __init__(self, icos: list[bytes], name: str, ignore_hotspots: bool):
         """
         Constructor for this class. Converts ICO images into transparent PNGs.
         Currently considers pure black pixels (0,0,0) as part of the background
@@ -58,7 +58,7 @@ class FrameScaler:
             name (str): Name of the original resource.
         """
         self.name = name
-        if (struct.unpack_from("<H", icos[0], 2)[0]) != 2:
+        if ignore_hotspots or (struct.unpack_from("<H", icos[0], 2)[0]) != 2:
             self.x, self.y = 0, 0
         else:
             self.x, self.y = struct.unpack_from("<HH", icos[0], 10)
