@@ -1,9 +1,8 @@
-import struct
-from io import BytesIO
-from typing import NamedTuple
+from __future__ import annotations
 
-import numpy as np
+from typing import NamedTuple
 from PIL import Image, ImageOps
+from win2xcursor.ico import IconDir, dib2png
 
 
 class Frames(NamedTuple):
@@ -20,7 +19,7 @@ class Frames(NamedTuple):
     """
 
     images: list[Image.Image]
-    frame_names: list[str]
+    names: list[str]
     hotspot_x: int
     hotspot_y: int
 
@@ -58,26 +57,20 @@ class FrameScaler:
             name (str): Name of the original resource.
         """
         self.name = name
-        if ignore_hotspots or (struct.unpack_from("<H", icos[0], 2)[0]) != 2:
-            self.x, self.y = 0, 0
-        else:
-            self.x, self.y = struct.unpack_from("<HH", icos[0], 10)
-
-        self.images = []
+        self.resolutions = {}
+        self.hotspots = {}
 
         for ico in icos:
-            with Image.open(BytesIO(ico)) as img:
-                img = img.convert("RGBA")
-                pixels = np.array(img)
+            meta = IconDir.from_buffer(ico, ignore_hotspots)
 
-                # Transform all black pixels to transparent
-                r, g, b, _ = pixels.T
-                black_areas = (r <= 0) & (g <= 0) & (b <= 0)
-                pixels[..., 3][black_areas.T] = 0
+            # Save every resolution
+            for entry in meta.entries:
+                self.resolutions.setdefault(entry.width, []).append(
+                    dib2png(ico[entry.offset : entry.offset + entry.bytes])
+                )
+                self.hotspots[entry.width] = (entry.x, entry.y)
 
-                self.images.append(Image.fromarray(pixels))
-
-    def get_frames(self, scale_value: int) -> Frames:
+    def get_frames(self, scale_value: int) -> list[Frames]:
         """
         Scales the stored frames on a specified scale.
 
@@ -87,24 +80,30 @@ class FrameScaler:
         Returns:
             Frames: Scaled PNG frames alongside metadata in a Frames tuple.
         """
-        images = []
-        names = []
-        for i, image in enumerate(self.images):
-            image = (
+        frames_list = []
+        for size in self.resolutions:
+            images = [
                 ImageOps.scale(image, scale_value, Image.Resampling.NEAREST)
                 if scale_value > 1
                 else image
+                for image in self.resolutions[size]
+            ]
+
+            indices = [
+                str(i + 1).zfill(max(2, len(str(len(images)))))
+                for i in range(len(images))
+            ]
+
+            frames_list.append(
+                Frames(
+                    images=images,
+                    names=[
+                        f"{self.name}{i}_{size}x{size}x{scale_value}.png"
+                        for i in indices
+                    ],
+                    hotspot_x=self.hotspots[size][0] * scale_value,
+                    hotspot_y=self.hotspots[size][1] * scale_value,
+                )
             )
 
-            index = str(i + 1).zfill(max(2, len(str(len(self.images)))))
-            images.append(image)
-            names.append(
-                f"{self.name}{index}x{scale_value}.png",
-            )
-
-        return Frames(
-            images=images,
-            frame_names=names,
-            hotspot_x=self.x * scale_value,
-            hotspot_y=self.y * scale_value,
-        )
+        return frames_list
