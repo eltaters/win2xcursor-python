@@ -19,7 +19,8 @@ class CursorFile:
         ani (AniData): Ani file metadata.
     """
 
-    sizes: list[Frames]
+    frames_list: list[Frames]
+    sizes: list[int]
     frames_dir: pathlib.Path
     ani: AniData
 
@@ -37,16 +38,24 @@ class CursorFile:
         """
         self.frames_dir = frames_dir
         self.sizes = []
+        self.frames_list = []
         self.ani = ani
 
-    def add(self, frames: Frames) -> None:
+    def add(self, frames_list: list[Frames]) -> None:
         """
         Adds a new resolution to this cursor.
 
         Args:
             scale (int): Scaling applied to the extracted PNGs.
         """
-        self.sizes.append(frames)
+        sizes = set()
+        for frames in frames_list:
+            if frames.size in self.sizes:
+                continue
+            self.frames_list.append(frames)
+            sizes.add(frames.size)
+
+        self.sizes += sizes
 
     def buffer(self) -> str:
         """
@@ -54,14 +63,14 @@ class CursorFile:
         """
         buffer = ""
 
-        for frames in self.sizes:
+        for frames in self.frames_list:
             for i, rate in zip(self.ani.sequence, self.ani.rates):
                 buffer += CURSOR_ENTRY_FMT.format(
                     size=frames.size,
                     x=frames.hotspot_x,
                     y=frames.hotspot_y,
                     path=os.path.sep.join(
-                        [self.frames_dir.name, frames.frame_names[i]]
+                        [self.frames_dir.name, frames.names[i]]
                     ),
                     rate=rate,
                 )
@@ -75,8 +84,9 @@ class CursorFile:
         Args:
             file (Path): Output path for the .cursor file.
         """
-        for size in self.sizes:
-            for frame, name in zip(size.images, size.frame_names):
-                frame.save(self.frames_dir.joinpath(name))
+
+        for frames in self.frames_list:
+            for frame, name in zip(frames.images, frames.names):
+                frame.save(self.frames_dir.joinpath(name), format="PNG")
 
         file.write_text(self.buffer())
