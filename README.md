@@ -1,6 +1,6 @@
 # win2xcursor
 
-A python script to parse windows .ani cursors via xcursorgen.  
+A python script to parse windows .ani cursors via xcursorgen.
 Inspired from the desire to bring NOiiRE's [beautiful cursors](https://ko-fi.com/noiire/shop) to linux.
 
 ## Installation

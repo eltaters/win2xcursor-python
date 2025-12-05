@@ -1,3 +1,5 @@
+"""Cursorfile generation module."""
+
 import logging
 import os
 import pathlib
@@ -15,14 +17,11 @@ class CursorFile:
 
     Attributes:
         sizes (list): List of resolutions supported by this cursor.
+        frames_list (list[Frames]): Raw frames for each resolution.
         frames_dir (Path): Directory to store required frames.
         ani (AniData): Ani file metadata.
-    """
 
-    frames_list: list[Frames]
-    sizes: list[int]
-    frames_dir: pathlib.Path
-    ani: AniData
+    """
 
     def __init__(
         self,
@@ -30,23 +29,27 @@ class CursorFile:
         frames_dir: pathlib.Path,
     ):
         """
-        Constructor method for this class.
+        Create an instance object of this class.
 
         Args:
             ani (AniData): Ani file metadata.
             frames_dir (Path): Directory to store required frames.
+
         """
-        self.frames_dir = frames_dir
-        self.sizes = []
-        self.frames_list = []
-        self.ani = ani
+        self.frames_dir: pathlib.Path = frames_dir
+        self.sizes: list[int] = []
+        self.frames_list: list[Frames] = []
+        self.ani: AniData = ani
 
     def add(self, frames_list: list[Frames]) -> None:
         """
-        Adds a new resolution to this cursor.
+        Add a set of new resolutions to this cursor.
+
+        Prioritizes repeated resolutions following FCFS priority.
 
         Args:
-            scale (int): Scaling applied to the extracted PNGs.
+            frames_list (list): New resolutions to add.
+
         """
         sizes = set()
         for frames in frames_list:
@@ -58,9 +61,7 @@ class CursorFile:
         self.sizes += sizes
 
     def buffer(self) -> str:
-        """
-        Returns the text that will be written to the `.cursor` file.
-        """
+        """Create a string representation of the `.cursor` file."""
         buffer = ""
 
         for frames in self.frames_list:
@@ -79,12 +80,14 @@ class CursorFile:
 
     def save(self, file: pathlib.Path) -> None:
         """
-        Writes the .cursor file with all specified resolutions.
+        Write the `.cursor` file with all specified resolutions.
+
+        Also saves the frames that compose the cursor.
 
         Args:
             file (Path): Output path for the .cursor file.
-        """
 
+        """
         for frames in self.frames_list:
             for frame, name in zip(frames.images, frames.names):
                 frame.save(self.frames_dir.joinpath(name), format="PNG")
