@@ -16,10 +16,10 @@ class CursorFile:
     Wrapper class to generate .cursor from ANI.
 
     Attributes:
-        sizes (list): List of resolutions supported by this cursor.
-        frames_list (list[Frames]): Raw frames for each resolution.
-        frames_dir (Path): Directory to store required frames.
-        ani (AniData): Ani file metadata.
+        sizes: List of resolutions supported by this cursor.
+        frames_list: Raw frames for each resolution.
+        frames_dir: Directory to store required frames.
+        ani: Ani file metadata.
 
     """
 
@@ -32,8 +32,8 @@ class CursorFile:
         Create an instance object of this class.
 
         Args:
-            ani (AniData): Ani file metadata.
-            frames_dir (Path): Directory to store required frames.
+            ani: ANI file metadata.
+            frames_dir: Directory to store required frames.
 
         """
         self.frames_dir: pathlib.Path = frames_dir
@@ -48,7 +48,7 @@ class CursorFile:
         Prioritizes repeated resolutions following FCFS priority.
 
         Args:
-            frames_list (list): New resolutions to add.
+            frames_list: New resolutions to add.
 
         """
         sizes = set()
@@ -85,7 +85,7 @@ class CursorFile:
         Also saves the frames that compose the cursor.
 
         Args:
-            file (Path): Output path for the .cursor file.
+            file: Output path for the .cursor file.
 
         """
         for frames in self.frames_list:
