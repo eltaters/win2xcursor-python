@@ -1,3 +1,5 @@
+"""Main script for cursor conversion."""
+
 import argparse
 import logging
 import pathlib
@@ -17,6 +19,13 @@ logger = logging.getLogger(__package__)
 
 
 def setup_parser() -> argparse.ArgumentParser:
+    """
+    Create the argument parser for this module.
+
+    Returns:
+        Parser with config options set.
+
+    """
     parser = argparse.ArgumentParser(
         prog="win2xcursor",
         description="Python script to transform .ani files into Xcursors",
@@ -51,6 +60,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Entry point of this script."""
     parser = setup_parser()
     args = parser.parse_args()
 
@@ -166,6 +176,16 @@ def create_alias(
     theme_dir: pathlib.Path,
     cursors_dir: pathlib.Path,
 ) -> None:
+    """
+    Create an alias for a cursor file.
+
+    Args:
+        alias (str): Symbolic link name.
+        xcursor_file (Path): Original cursor path.
+        theme_dir (Path): Cursor theme directory.
+        cursors_dir (Path): Cursor files directory.
+
+    """
     alias_file = cursors_dir.joinpath(alias)
     alias_file.unlink(missing_ok=True)
 
@@ -191,6 +211,13 @@ def create_alias(
 
 
 def create_index_theme(theme_dir: pathlib.Path) -> None:
+    """
+    Create the `index.theme` file.
+
+    Args:
+        theme_dir (Path): Cursor theme directory.
+
+    """
     index_theme = theme_dir.joinpath("index.theme")
     text = (
         "[Icon Theme]\n"

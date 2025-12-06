@@ -1,8 +1,11 @@
+"""Image extraction and convesion from ICO."""
+
 from __future__ import annotations
 
 import struct
-from PIL import Image
+
 from msgspec import Struct
+from PIL import Image
 
 
 class IconDir(Struct):
@@ -14,6 +17,7 @@ class IconDir(Struct):
         type (int): 1 for ICO, 2 for CUR.
         count (int): Number of images in the file.
         entries (list): Each entry represents an image.
+
     """
 
     reserved: int
@@ -23,6 +27,15 @@ class IconDir(Struct):
 
     @classmethod
     def from_buffer(cls, buf: bytes, ignore_hotspots: bool = False):
+        """
+        Create an instance for this class from a buffer.
+
+        Args:
+            buf (bytes): Source data.
+            ignore_hotspots (bool): Sets x/y hotspot values of each entry to 0
+            if True. Defaults to False.
+
+        """
         reserved, type_, count = struct.unpack_from("<3H", buf, 0)
         entries = [
             IconDirEntry.from_buffer(
@@ -36,7 +49,7 @@ class IconDir(Struct):
 
 class IconDirEntry(Struct):
     """
-    Represents the ICONDIR struct inside an `ICONDIR` struct.
+    Represents an entry inside the `ICONDIR` struct.
 
     Attributes:
         width (int): Image width.
@@ -47,6 +60,7 @@ class IconDirEntry(Struct):
         y (int): Bits per pixel in ICO, y hotspot in CUR.
         bytes (int): Image size in bytes
         offset (int): Offset of BMP/PNG data from the ICO/CUR file.
+
     """
 
     width: int
@@ -60,6 +74,15 @@ class IconDirEntry(Struct):
 
     @classmethod
     def from_buffer(cls, buf: bytes, ignore_hotspots: bool = False):
+        """
+        Create an instance for this class from a buffer.
+
+        Args:
+            buf (bytes): Source data.
+            ignore_hotspots (bool): Sets x/y hotspot values to 0 if True.
+            Defaults to False.
+
+        """
         instance = cls(*struct.unpack_from("<4B2H2I", buf, 0))
         instance.x, instance.y = (
             (0, 0) if ignore_hotspots else (instance.x, instance.y)
@@ -78,6 +101,7 @@ class BitmapInfoHeader(Struct):
         size (int): Size of this header. Always 40.
         width (int): Width of the bitmap in pixels.
         height (int): Height of the bitmap in pixels, adjusted for the mask.
+
     """
 
     size: int
@@ -99,6 +123,7 @@ class BitmapInfoHeader(Struct):
 
         Args:
             buf (bytes): Source data.
+
         """
         instance = cls(*struct.unpack_from("<3I2H6I", buf, 0))
         assert instance.size == struct.calcsize("<3I2H6I")
@@ -111,9 +136,7 @@ class BitmapInfoHeader(Struct):
 
 
 def dib2png(data: bytes) -> Image.Image:
-    """
-    Convert a DIB from an ICO file to PNG, applying the AND mask.
-    """
+    """Convert a DIB from an ICO file to PNG, applying the AND mask."""
     header = BitmapInfoHeader.from_buffer(data)
 
     # Compute strides (extracted from microsoft docs)

@@ -1,3 +1,11 @@
+"""
+Ani handling module.
+
+Defines the structure of an ANI file, its header values and how its
+metadata is extracted and treated.
+
+"""
+
 from __future__ import annotations
 
 import logging
@@ -24,7 +32,8 @@ class AniHeader(Struct):
         planes (int): Not used.
         jifrate (int): Display rate in milliseconds.
         fl (int): AF_SEQUENCE (0x2) | AF_ICON (0x1). AF_ICON should be set,
-                  but AF_SEQUENCE is optional.
+        but AF_SEQUENCE is optional.
+
     """
 
     size: int
@@ -53,6 +62,7 @@ class AniHeader(Struct):
         return self._fl & 0x2 != 0
 
     def __repr__(self) -> str:
+        """Create a string representation of this object."""
         return (
             f"\tsize: {self.size}\n"
             f"\tframes: {self.frames}\n"
@@ -71,6 +81,7 @@ class AniData:
         sequence (list): Order of frames in the animation by index.
         rates (list): Jifrate per frame in the sequence.
         frames (list): Raw ICO buffers on the file.
+
     """
 
     _data: bytes
@@ -82,10 +93,11 @@ class AniData:
 
     def __init__(self, buffer: bytes):
         """
-        Constructor method for this class.
+        Create an instance object of this class.
 
         Args:
             buffer (bytes): ANI data.
+
         """
         self._data = buffer
         self._offset = 0
@@ -127,6 +139,7 @@ class AniData:
 
         Returns:
             AniData: instance constructed from path.
+
         """
         with open(path, "rb") as f:
             buffer = f.read()
@@ -135,15 +148,17 @@ class AniData:
 
     def unpack(self, format: str) -> tuple[Any, ...]:
         """
-        Unpacks a set of values according to format.
-        Automatically advances the internal offset by formatsize.
+        Unpack a set of values according to format.
+
+        Automatically advances the internal offset by format size bytes.
 
         Args:
             format (str): Unpacking format, according to the specifications of
-                          the struct module.
+            the struct module.
 
         Returns:
             tuple: Unpacked values according to format.
+
         """
         values = struct.unpack_from(format, self._data, self._offset)
         self._offset += struct.calcsize(format)
@@ -152,7 +167,7 @@ class AniData:
 
     def findall(self, sub: bytes) -> Iterable[int]:
         """
-        Generator method to find a bytearray in the file.
+        Find all instances of the `sub` bytearray on the ani data.
 
         Args:
             sub (bytes): bytearray to find.
@@ -162,8 +177,10 @@ class AniData:
 
         Examples:
             >>> self._data = b"...LIST...LIST..."
-            >>> print([i for i in self.findall(sub=b"LIST")
+            >>> for i in self.findall(sub=b"LIST"):
+            >>>     print(i)
             [ 7, 14 ]
+
         """
         i = -1
         while (i := self._data.find(sub, i + 5)) != -1:
@@ -171,13 +188,14 @@ class AniData:
 
     def _sequence(self, af_sequence: bool) -> list[int]:
         """
-        Computes the sequence list for this file.
+        Obtain the sequence list for this file.
 
         Args:
             af_sequence (bool): if the AF_SEQUENCE bit is on.
 
         Returns:
             list: Frame sequence indices.
+
         """
         if af_sequence is False:
             return list(range(self.header.frames))
@@ -186,11 +204,13 @@ class AniData:
         for offset in self.findall(b"seq"):
             self._offset = offset
 
+            # Coincidental bytearray
             if self.unpack("<I")[0] / 4 != self.header.steps:
                 continue
 
             seq = [self.unpack("<I")[0] for _ in range(self.header.steps)]
 
+            # Invalid step index
             if any(s > self.header.steps for s in seq):
                 continue
 
@@ -200,19 +220,21 @@ class AniData:
 
     def _rates(self, af_sequence: bool) -> list[int]:
         """
-        Computes the rate for each frame in the sequence.
+        Obtain the rate for each frame in the sequence.
 
         Args:
             af_sequence (bool): if the AF_SEQUENCE bit is on.
 
         Returns:
             list: Frame sequence rates, in milliseconds.
+
         """
         count = self.header.steps if af_sequence else self.header.frames
 
         for offset in self.findall(b"rate"):
             self._offset = offset
 
+            # Coincidental bytearray
             if self.unpack("<I")[0] / 4 != count:
                 continue
 
@@ -222,10 +244,11 @@ class AniData:
 
     def _frames(self) -> list[bytes]:
         """
-        Parses all ico files from the internal data buffer.
+        Parse all ico files from the internal data buffer.
 
         Returns:
             list: Frames in the file, in ico format.
+
         """
         frames = []
         for offset in self.findall(b"LIST"):

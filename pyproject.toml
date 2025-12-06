@@ -13,7 +13,6 @@ version = { attr = "win2xcursor.__version__" }
 
 [project.scripts]
 win2xcursor = "win2xcursor.__main__:main"
-win2xtest = "win2xcursor.__test__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -24,5 +23,14 @@ where = ["src"]
 [tool.ruff]
 line-length = 79
 
+[tool.ruff.lint]
+select = ["E", "F", "I", "D"]
+ignore = ["D203","D212"]
+
 [dependency-groups]
-dev = ["isort>=6.0.1", "mypy>=1.18.2", "ruff>=0.13.2"]
+dev = [
+    "isort>=6.0.1",
+    "mypy>=1.18.2",
+    "pre-commit>=4.5.0",
+    "ruff>=0.13.2",
+]

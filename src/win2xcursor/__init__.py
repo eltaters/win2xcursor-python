@@ -1,3 +1,5 @@
+"""The win2xcursor package."""
+
 from win2xcursor.config import Config, Cursor
 
 __all__ = ("Cursor", "Config")

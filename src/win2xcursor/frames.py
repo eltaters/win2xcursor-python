@@ -1,13 +1,18 @@
+"""Frame extraction and scaling module."""
+
 from __future__ import annotations
 
 from typing import NamedTuple
+
 from PIL import Image, ImageOps
+
 from win2xcursor.ico import IconDir, dib2png
 
 
 class Frames(NamedTuple):
     """
     Representation of the frames that compose a cursor configuration.
+
     A .cursor file can have multiple configurations, one for each supported
     resolution.
 
@@ -16,6 +21,7 @@ class Frames(NamedTuple):
         frame_names (list): Indexed name for each frame.
         hotspot_x: X offset for the configuration.
         hotspot_y: Y offset for the configuration.
+
     """
 
     images: list[Image.Image]
@@ -25,17 +31,16 @@ class Frames(NamedTuple):
 
     @property
     def size(self) -> int:
-        """
-        int: Shared resolution size of the frames, which have the same width
-        and height.
-        """
+        """Return the shared resolution of these frames."""
         return self.images[0].width
 
 
 class FrameScaler:
     """
-    Manager object for a series of frames in ICO format. Converts ICO files to
-    png upon initialization and allows arbitrary scaling via NN.
+    Manager object for a series of frames in ICO format.
+
+    Converts ICO files to PNG upon initialization and allows arbitrary scaling
+    via the Nearest-Neighbor algorithm.
 
     Attributes:
         name (str): Name of the original resource, which is then decomposed
@@ -48,13 +53,13 @@ class FrameScaler:
 
     def __init__(self, icos: list[bytes], name: str, ignore_hotspots: bool):
         """
-        Constructor for this class. Converts ICO images into transparent PNGs.
-        Currently considers pure black pixels (0,0,0) as part of the background
-        and removes them.
+        Create an instance object of this class.
 
         Args:
             icos (list): List of ICO or CUR formatted buffers.
             name (str): Name of the original resource.
+            ignore_hotspots (bool): Sets x/y hotspot values to 0 if True.
+
         """
         self.name = name
         self.resolutions = {}
@@ -72,13 +77,14 @@ class FrameScaler:
 
     def get_frames(self, scale_value: int) -> list[Frames]:
         """
-        Scales the stored frames on a specified scale.
+        Scale the stored frames on a specified scale.
 
         Args:
             scale_value (int): scaling factor for the image:
 
         Returns:
             Frames: Scaled PNG frames alongside metadata in a Frames tuple.
+
         """
         frames_list = []
         for size in self.resolutions:
