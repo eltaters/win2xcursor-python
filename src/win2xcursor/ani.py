@@ -15,6 +15,9 @@ from typing import Any, Iterable
 
 from msgspec import Struct
 
+# Unit of measurement for a frame's display rate.
+JIFFY = 1000 / 60
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,16 +26,16 @@ class AniHeader(Struct):
     Represents the ANIHEADER struct in the `anih` chunk.
 
     Attributes:
-        size (int): Length of this chunk.
-        frames (int): Number of frames in the file.
-        steps (int): Number of steps in the animation loop.
-        cx (int): Not used.
-        cy (int): Not used.
-        bit_count (int): Not used.
-        planes (int): Not used.
-        jifrate (int): Display rate in milliseconds.
-        fl (int): AF_SEQUENCE (0x2) | AF_ICON (0x1). AF_ICON should be set,
-        but AF_SEQUENCE is optional.
+        size: Length of this chunk.
+        frames: Number of frames in the file.
+        steps: Number of steps in the animation loop.
+        cx: Not used.
+        cy: Not used.
+        bit_count: Not used.
+        planes: Not used.
+        jifrate: Display rate in milliseconds.
+        fl: AF_SEQUENCE (0x2) | AF_ICON (0x1). AF_ICON should be set,
+            but AF_SEQUENCE is optional.
 
     """
 
@@ -46,10 +49,15 @@ class AniHeader(Struct):
     _jifrate: int
     _fl: int
 
+    @classmethod
+    def from_buffer(cls, buffer: bytes) -> AniHeader:
+        """Create an `AniHeader` from an in-memory buffer."""
+        return cls(*struct.unpack_from("<9I", buffer))
+
     @property
     def jifrate(self) -> int:
         """int: Default display rate, in milliseconds."""
-        return int(1000 * self._jifrate / 60)
+        return round(self._jifrate * JIFFY)
 
     @property
     def icon(self) -> bool:
@@ -101,30 +109,8 @@ class AniData:
         """
         self._data = buffer
         self._offset = 0
-
-        # RIFF header validation
-        ftype, size = self.unpack("<4sI")
-
-        if ftype != b"RIFF":
-            raise ValueError("Not a RIFF file")
-
-        if size + 8 != len(self._data):
-            raise ValueError(
-                f"Expected file size {size + 8}, got {len(self._data)}"
-            )
-
-        # RIFF type
-        rifftype, anih = self.unpack("<4s4s")
-        if rifftype != b"ACON" or anih != b"anih":
-            raise ValueError("Expected an .ani file")
-
-        # ANIH data
-        anihsize = self.unpack("<I")[0]
-        self.header = AniHeader(*self.unpack("<9I"))
-
-        assert anihsize == self.header.size, "Sizes differ"
-
-        # File options
+        self._validate_signature()
+        self.header = self._header()
         self.sequence = self._sequence(self.header.sequence)
         self.rates = self._rates(self.header.sequence)
         self.frames = self._frames()
@@ -159,6 +145,9 @@ class AniData:
         Returns:
             tuple: Unpacked values according to format.
 
+        See Also:
+            https://docs.python.org/3/library/struct.html#format-strings
+
         """
         values = struct.unpack_from(format, self._data, self._offset)
         self._offset += struct.calcsize(format)
@@ -185,6 +174,33 @@ class AniData:
         i = -1
         while (i := self._data.find(sub, i + 5)) != -1:
             yield i + 4
+
+    def _validate_signature(self) -> None:
+        riff, size, acon = self.unpack("<4sI4s")
+
+        # TODO: Remove before merging - All of these errors can be omitted if
+        # we don't want to enforce strict adherence to the ANI format.
+        if riff != b"RIFF":
+            raise ValueError("Invalid RIFF file signature")
+
+        if (buffer_size := size + 8) != len(self._data):
+            raise ValueError(
+                f"Expected buffer size {buffer_size}, got {len(self._data)}"
+            )
+
+        if acon != b"ACON":
+            raise ValueError("Invalid ANI file signature")
+
+    def _header(self) -> AniHeader:
+        anih, chunk_size = self.unpack("<4sI")
+        header = AniHeader(*self.unpack("<9I"))
+
+        if header.size != chunk_size:
+            # TODO: Remove before merging - This can be omitted if we
+            # don't want to enforce strict adherence to the ANI format.
+            raise ValueError("Chunk and header sizes differ")
+
+        return header
 
     def _sequence(self, af_sequence: bool) -> list[int]:
         """
