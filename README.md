@@ -42,7 +42,7 @@ Before using the script, you need to do the following:
   $ mkdir -p ~/.local/share/icons/<ThemeName>/ani
 
   # To install the theme for everyone on the system:
-  \# mkdir -p /usr/share/icons/<ThemeName>/ani
+  $ sudo mkdir -p /usr/share/icons/<ThemeName>/ani
   ```
 2. Copy your .ani files to `<ThemeDir>/ani`
 3. Create a `config.toml` file in `<ThemeDir>`
