@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: File a report from using this package
+about: Program crashed or gave unexpected results.
 title: ''
 labels: ''
 assignees: ''
