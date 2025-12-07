@@ -85,10 +85,10 @@ class AniData:
     Class representation for a windows .ANI file.
 
     Attributes:
-        header (AniHeader): Header information for this file.
-        sequence (list): Order of frames in the animation by index.
-        rates (list): Jifrate per frame in the sequence.
-        frames (list): Raw ICO buffers on the file.
+        header: Header information for this file.
+        sequence: Order of frames in the animation by index.
+        rates: Jifrate per frame in the sequence.
+        frames: Raw ICO buffers on the file.
 
     """
 
