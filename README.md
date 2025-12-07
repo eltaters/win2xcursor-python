@@ -5,7 +5,7 @@ Inspired from the desire to bring NOiiRE's [beautiful cursors](https://ko-fi.com
 
 ## Installation
 
-This script requires the `numpy` and `pillow` libaries, which you can set up through a python virtual environment:
+This script depends on the `msgspec` and `pillow` libaries, which you can set up through a python virtual environment:
 
 ```bash
 # Set-up with pip
@@ -36,23 +36,26 @@ sudo dnf install xcursorgen
 
 Before using the script, you need to do the following:
 
-1. Create a new directory for your theme:
+1. Create a new directory for your theme (from now on, `<ThemeDir>`):
   ```bash
   # To install the theme for the current user:
-  $ cd ~/.local/share/icons
+  $ mkdir -p ~/.local/share/icons/<ThemeName>/ani
 
   # To install the theme for everyone on the system:
-  # $ cd /usr/share/icons
-
-  $ mkdir -p <ThemeName>/ani
+  \# mkdir -p /usr/share/icons/<ThemeName>/ani
   ```
-2. Copy your .ani files to `~/.local/share/icons/<ThemeName>/ani`
-3. Create a `config.toml` file in `~/.local/share/icons/<ThemeName>`
+2. Copy your .ani files to `<ThemeDir>/ani`
+3. Create a `config.toml` file in `<ThemeDir>`
 
 After this setup, you can proceed to run the script:
 
 ```bash
-$ win2xcursor --theme=<ThemeName>
+# Inside <ThemeDir>
+$ cd <ThemeDir>
+$ win2xcursor
+
+# Outside <ThemeDir>
+$ win2xcursor --theme-dir=<ThemeDir>
 ```
 
 ### config.toml
