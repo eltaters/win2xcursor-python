@@ -56,17 +56,17 @@ class AniHeader(Struct):
 
     @property
     def jifrate(self) -> int:
-        """int: Default display rate, in milliseconds."""
+        """Default display rate, in milliseconds."""
         return round(self._jifrate * JIFFY)
 
     @property
     def icon(self) -> bool:
-        """bool: AF_ICON flag."""
+        """AF_ICON flag."""
         return self._fl & 0x1 != 0
 
     @property
     def sequence(self) -> bool:
-        """bool: AF_SEQUENCE optional flag."""
+        """AF_SEQUENCE optional flag."""
         return self._fl & 0x2 != 0
 
     def __repr__(self) -> str:
@@ -121,7 +121,7 @@ class AniData:
         Alternate constructor method from a file.
 
         Args:
-            path (Path): ANI file path.
+            path: ANI file path.
 
         Returns:
             AniData: instance constructed from path.
