@@ -7,16 +7,35 @@ assignees: ''
 
 ---
 
-**Describe the Bug**
-A clear and concise description of what the bug is.
+# Checklist
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Download X cursor ...
-2. Set up `config.toml` ...
+- [ ] There are no open issues for the same bug.
+- [ ] I am using the latest version of win2xcursor.
 
-**Expected Behavior**
-A clear and concise description of what you expected to happen.
+# Describe the bug
 
-**Stack Trace**
-If applicable, add the error output from running the script.
+A clear description of the bug...
+
+# Expected result
+
+What were you expecting to happen?
+
+# Reproduction steps
+
+Steps to reproduce this behavior:
+
+1. Download cursor from...
+1. Set up `config.toml`...
+1. ...
+
+# Traceback
+
+If applicable, add the error output:
+
+<details>
+<summary>Traceback</summary>
+
+```
+Paste your traceback here...
+```
+</details>
