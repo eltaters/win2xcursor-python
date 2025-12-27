@@ -7,20 +7,20 @@ assignees: ''
 
 ---
 
-# Checklist
+### Checklist
 
 - [ ] There are no open issues for the same bug.
 - [ ] I am using the latest version of win2xcursor.
 
-# Describe the bug
+### Describe the bug
 
 A clear description of the bug...
 
-# Expected result
+### Expected result
 
 What were you expecting to happen?
 
-# Reproduction steps
+### Reproduction steps
 
 Steps to reproduce this behavior:
 
@@ -28,7 +28,7 @@ Steps to reproduce this behavior:
 1. Set up `config.toml`...
 1. ...
 
-# Traceback
+### Traceback
 
 If applicable, add the error output:
 
