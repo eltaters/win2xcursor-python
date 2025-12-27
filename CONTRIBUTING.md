@@ -37,8 +37,16 @@ Contributions should pass the following checks:
 
 The `main` branch should always be **stable**. Create feature branches for your
 work (e.g., `feature/add-skip-broken-flag`, `bugfix/42-improper-scaling`,
-`docs/update-readme`, etc.)
+`docs/update-readme`, etc.).
+
+### Commits
+
+Your commit messages should follow the [conventional commit] guidelines ([cheatsheet]).
 
 ## License
 
 See [LICENSE](./LICENSE).
+
+
+[conventional commit](https://www.conventionalcommits.org/en/v1.0.0/)
+[cheatsheet](https://gist.github.com/Zekfad/f51cb06ac76e2457f11c80ed705c95a3)
