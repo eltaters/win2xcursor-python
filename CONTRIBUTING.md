@@ -48,5 +48,5 @@ Your commit messages should follow the [conventional commit] guidelines ([cheats
 See [LICENSE](./LICENSE).
 
 
-[conventional commit](https://www.conventionalcommits.org/en/v1.0.0/)
-[cheatsheet](https://gist.github.com/Zekfad/f51cb06ac76e2457f11c80ed705c95a3)
+[conventional commit]: https://www.conventionalcommits.org/en/v1.0.0/
+[cheatsheet]: https://gist.github.com/Zekfad/f51cb06ac76e2457f11c80ed705c95a3
