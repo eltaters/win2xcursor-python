@@ -55,8 +55,7 @@ fi
 green "+ win2xcursor is installed"
 
 echo ""
-# TODO: Figure out how to enable autocomplete for this prompt.
-read -p "Path to directory containing ANI files: " path_to_cursors
+read -e -p "Path to directory containing ANI files: " path_to_cursors
 eval path_to_cursors="$path_to_cursors"
 
 if ! test -d $path_to_cursors; then
