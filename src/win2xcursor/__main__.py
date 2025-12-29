@@ -1,6 +1,7 @@
 """Defines the CLI for converting Windows animated cursors to Linux."""
 
 import logging
+import os
 import pathlib
 import subprocess
 import sys
@@ -22,8 +23,7 @@ def main() -> int:
     Entry point to the program.
 
     Returns:
-        An exit code -- it describes the process after it has terminated.
-        Zero indicates success; non-zero indicates failure.
+        Exit code -- zero indicates success; non-zero indicates failure.
 
     """
     # Parse command-line arguments
@@ -53,7 +53,7 @@ def main() -> int:
         # TODO: Remove when `err` prints a custom error message -
         # https://github.com/eltaters/win2xcursor/pull/9#issuecomment-3453381998
         logger.error("Invalid config: %s", err)
-        return 1
+        return os.EX_DATAERR
 
     for cursor in config.cursors:
         ani_file = theme.ani.joinpath(cursor.file)
@@ -98,7 +98,7 @@ def main() -> int:
         theme.cleanup()
 
     logger.info("Finished creating cursors! 🚀🚀")
-    return 0
+    return os.EX_OK
 
 
 def _logging_subscriber(level: int) -> None:

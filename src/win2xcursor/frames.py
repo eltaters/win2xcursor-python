@@ -43,8 +43,7 @@ class FrameScaler:
     via the Nearest-Neighbor algorithm.
 
     Attributes:
-        name: Name of the original resource, which is then decomposed
-            into frames.
+        name: Name of original resource, which is then decomposed into frames.
         images: PNG representation of the frames.
         x: Base X hotspot for the frames.
         y: Base Y hotspot for the frames.
@@ -83,7 +82,7 @@ class FrameScaler:
             scale_value: scaling factor for the image:
 
         Returns:
-            Frames: Scaled PNG frames alongside metadata in a Frames tuple.
+            Scaled PNG frames alongside metadata in a Frames tuple.
 
         """
         frames_list = []
@@ -95,9 +94,11 @@ class FrameScaler:
                 for image in self.resolutions[size]
             ]
 
+            image_count = len(images)
+            image_count_digits = len(str(image_count))
+            index_width = max(image_count_digits, 2)
             indices = [
-                str(i + 1).zfill(max(2, len(str(len(images)))))
-                for i in range(len(images))
+                str(i).zfill(index_width) for i in range(1, image_count + 1)
             ]
 
             frames_list.append(

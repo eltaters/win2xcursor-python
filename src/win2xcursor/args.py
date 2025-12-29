@@ -8,10 +8,10 @@ from win2xcursor import __version__
 
 def setup_parser() -> argparse.ArgumentParser:
     """
-    Create the argument parser for this module.
+    Create the argument parser for this application.
 
     Returns:
-        Parser with config options set.
+        Fully configured argument parser.
 
     """
     parser = argparse.ArgumentParser(

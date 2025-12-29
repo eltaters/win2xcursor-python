@@ -10,7 +10,7 @@ from PIL import Image
 
 class IconDir(Struct):
     """
-    Represents the ICONDIR struct in an `ico` buffer.
+    Represents the ICONDIR struct in an ICO-formatted buffer.
 
     Attributes:
         reserved: Must be 0.
@@ -32,19 +32,45 @@ class IconDir(Struct):
 
         Args:
             buf: Source data.
-            ignore_hotspots: Sets x/y hotspot values of each entry to 0
-            if True. Defaults to False.
+            ignore_hotspots: If ``True``, set each X/Y hotspot value to (0, 0).
 
         """
         reserved, type_, count = struct.unpack_from("<3H", buf, 0)
         entries = [
             IconDirEntry.from_buffer(
-                buf[6 + i * 16 : 6 + (i + 1) * 16],
+                buf[_entry_offset(i) : _entry_offset(i + 1)],
                 ignore_hotspots or type_ == 1,
             )
             for i in range(count)
         ]
         return cls(reserved=reserved, type=type_, count=count, entries=entries)
+
+
+def _entry_offset(index: int, /) -> int:
+    # ICO file layout (`IconDir` followed by an array of `IconDirEntry`s):
+    #
+    #   0         6          22         38
+    #   |---------|----------|----------|--- ...
+    #   | IconDir | Entry #1 | Entry #2 |
+    #   | 6 bytes | 16 bytes | 16 bytes |
+    #   |---------|----------|----------|--- ...
+    #             ^          ^          ^
+    #     index=0 |  index=1 |  index=2 |
+    #
+    # In general:
+    #
+    #   f(i) = sizeof(IconDir) + (index * sizeof(IconDirEntry))
+    #
+    # So slicing:
+    #
+    #   buffer[f(i) : f(i+1)]
+    #
+    # Yields exactly one 16-byte `IconDirEntry`.
+    #
+    # https://en.wikipedia.org/wiki/ICO_(file_format)#ICONDIR_structure
+    dir_size = 6
+    entry_size = 16
+    return dir_size + (index * entry_size)
 
 
 class IconDirEntry(Struct):
@@ -119,7 +145,7 @@ class BitmapInfoHeader(Struct):
     @classmethod
     def from_buffer(cls, buf: bytes) -> BitmapInfoHeader:
         """
-        Create an instance for this class from a buffer.
+        Create an instance of this class from a buffer.
 
         Args:
             buf: Source data.

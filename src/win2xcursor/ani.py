@@ -82,7 +82,7 @@ class AniHeader(Struct):
 
 class AniData:
     """
-    Class representation for a windows .ANI file.
+    Represents the parsed data within an ANI-formatted buffer.
 
     Attributes:
         header: Header information for this file.
@@ -110,10 +110,10 @@ class AniData:
         self._data = buffer
         self._offset = 0
         self._validate_signature()
-        self.header = self._header()
-        self.sequence = self._sequence(self.header.sequence)
-        self.rates = self._rates(self.header.sequence)
-        self.frames = self._frames()
+        self.header = self._parse_header()
+        self.sequence = self._parse_sequence(self.header.sequence)
+        self.rates = self._parse_rates(self.header.sequence)
+        self.frames = self._parse_frames()
 
     @classmethod
     def from_file(cls, path: pathlib.Path) -> AniData:
@@ -124,7 +124,7 @@ class AniData:
             path: ANI file path.
 
         Returns:
-            AniData: instance constructed from path.
+            instance constructed from path.
 
         """
         with open(path, "rb") as f:
@@ -166,9 +166,8 @@ class AniData:
 
         Examples:
             >>> self._data = b"...LIST...LIST..."
-            >>> for i in self.findall(sub=b"LIST"):
-            >>>     print(i)
-            [ 7, 14 ]
+            >>> [i for i in self.findall(sub=b"LIST")]
+            [7,14]
 
         """
         i = -1
@@ -178,8 +177,6 @@ class AniData:
     def _validate_signature(self) -> None:
         riff, size, acon = self.unpack("<4sI4s")
 
-        # TODO: Remove before merging - All of these errors can be omitted if
-        # we don't want to enforce strict adherence to the ANI format.
         if riff != b"RIFF":
             raise ValueError("Invalid RIFF file signature")
 
@@ -191,18 +188,16 @@ class AniData:
         if acon != b"ACON":
             raise ValueError("Invalid ANI file signature")
 
-    def _header(self) -> AniHeader:
+    def _parse_header(self) -> AniHeader:
         anih, chunk_size = self.unpack("<4sI")
         header = AniHeader(*self.unpack("<9I"))
 
         if header.size != chunk_size:
-            # TODO: Remove before merging - This can be omitted if we
-            # don't want to enforce strict adherence to the ANI format.
             raise ValueError("Chunk and header sizes differ")
 
         return header
 
-    def _sequence(self, af_sequence: bool) -> list[int]:
+    def _parse_sequence(self, af_sequence: bool) -> list[int]:
         """
         Obtain the sequence list for this file.
 
@@ -234,7 +229,7 @@ class AniData:
 
         return list(range(self.header.steps))
 
-    def _rates(self, af_sequence: bool) -> list[int]:
+    def _parse_rates(self, af_sequence: bool) -> list[int]:
         """
         Obtain the rate for each frame in the sequence.
 
@@ -258,7 +253,7 @@ class AniData:
 
         return [self.header.jifrate] * count
 
-    def _frames(self) -> list[bytes]:
+    def _parse_frames(self) -> list[bytes]:
         """
         Parse all ico files from the internal data buffer.
 
