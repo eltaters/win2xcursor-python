@@ -10,10 +10,10 @@ class Cursor(Struct, kw_only=True):
     Represents an ANI file to convert.
 
     Attributes:
-        name (str): Unique name for the cursor.
-        file (str): Name of the ANI file from the `<theme>/ani` subdirectory.
-        aliases (list): Alternative names to link `name` to for compatibility
-                        with different applications.
+        name: Unique name for the cursor.
+        file: Name of the ANI file from the `<theme>/ani` subdirectory.
+        aliases: Alternative names to link `name` to for compatibility
+            with different applications.
 
     """
 
@@ -27,8 +27,8 @@ class Config(Struct, kw_only=True):
     Represents the main configuration of the cursor theme.
 
     Attributes:
-        scale (int): Factor to enlarge the cursor by.
-        cursors (list): Array of cursor definitions.
+        scale: Factor to enlarge the cursor by.
+        cursors: Array of cursor definitions.
 
     """
 

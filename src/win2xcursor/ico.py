@@ -1,4 +1,4 @@
-"""Image extraction and convesion from ICO."""
+"""Image extraction and conversion from ICO."""
 
 from __future__ import annotations
 
@@ -10,13 +10,13 @@ from PIL import Image
 
 class IconDir(Struct):
     """
-    Represents the ICONDIR struct in an `ico` buffer.
+    Represents the ICONDIR struct in an ICO-formatted buffer.
 
     Attributes:
-        reserved (int): Must be 0.
-        type (int): 1 for ICO, 2 for CUR.
-        count (int): Number of images in the file.
-        entries (list): Each entry represents an image.
+        reserved: Must be 0.
+        type: 1 for ICO, 2 for CUR.
+        count: Number of images in the file.
+        entries: Each entry represents an image.
 
     """
 
@@ -31,15 +31,14 @@ class IconDir(Struct):
         Create an instance for this class from a buffer.
 
         Args:
-            buf (bytes): Source data.
-            ignore_hotspots (bool): Sets x/y hotspot values of each entry to 0
-            if True. Defaults to False.
+            buf: Source data.
+            ignore_hotspots: If ``True``, set each X/Y hotspot value to (0, 0).
 
         """
         reserved, type_, count = struct.unpack_from("<3H", buf, 0)
         entries = [
             IconDirEntry.from_buffer(
-                buf[6 + i * 16 : 6 + (i + 1) * 16],
+                buf[_entry_offset(i) : _entry_offset(i + 1)],
                 ignore_hotspots or type_ == 1,
             )
             for i in range(count)
@@ -47,19 +46,46 @@ class IconDir(Struct):
         return cls(reserved=reserved, type=type_, count=count, entries=entries)
 
 
+def _entry_offset(index: int, /) -> int:
+    # ICO file layout (`IconDir` followed by an array of `IconDirEntry`s):
+    #
+    #   0         6          22         38
+    #   |---------|----------|----------|--- ...
+    #   | IconDir | Entry #1 | Entry #2 |
+    #   | 6 bytes | 16 bytes | 16 bytes |
+    #   |---------|----------|----------|--- ...
+    #             ^          ^          ^
+    #     index=0 |  index=1 |  index=2 |
+    #
+    # In general:
+    #
+    #   f(i) = sizeof(IconDir) + (index * sizeof(IconDirEntry))
+    #
+    # So slicing:
+    #
+    #   buffer[f(i) : f(i+1)]
+    #
+    # Yields exactly one 16-byte `IconDirEntry`.
+    #
+    # https://en.wikipedia.org/wiki/ICO_(file_format)#ICONDIR_structure
+    dir_size = 6
+    entry_size = 16
+    return dir_size + (index * entry_size)
+
+
 class IconDirEntry(Struct):
     """
     Represents an entry inside the `ICONDIR` struct.
 
     Attributes:
-        width (int): Image width.
-        height (int): Image height.
-        color_count (int): Color palette.
-        reserved (int): Must be 0.
-        x (int): Color planes in ICO, x hotspot in CUR.
-        y (int): Bits per pixel in ICO, y hotspot in CUR.
-        bytes (int): Image size in bytes
-        offset (int): Offset of BMP/PNG data from the ICO/CUR file.
+        width: Image width.
+        height: Image height.
+        color_count: Color palette.
+        reserved: Must be 0.
+        x: Color planes in ICO, x hotspot in CUR.
+        y: Bits per pixel in ICO, y hotspot in CUR.
+        bytes: Image size in bytes
+        offset: Offset of BMP/PNG data from the ICO/CUR file.
 
     """
 
@@ -75,11 +101,11 @@ class IconDirEntry(Struct):
     @classmethod
     def from_buffer(cls, buf: bytes, ignore_hotspots: bool = False):
         """
-        Create an instance for this class from a buffer.
+        Create an instance of this class from a buffer.
 
         Args:
-            buf (bytes): Source data.
-            ignore_hotspots (bool): Sets x/y hotspot values to 0 if True.
+            buf: Source data.
+            ignore_hotspots: Sets X/Y hotspot values to 0 if True.
             Defaults to False.
 
         """
@@ -98,9 +124,9 @@ class BitmapInfoHeader(Struct):
     Only the size, width and height attributes are used.
 
     Attributes:
-        size (int): Size of this header. Always 40.
-        width (int): Width of the bitmap in pixels.
-        height (int): Height of the bitmap in pixels, adjusted for the mask.
+        size: Size of this header. Always 40.
+        width: Width of the bitmap in pixels.
+        height: Height of the bitmap in pixels, adjusted for the mask.
 
     """
 
@@ -119,10 +145,10 @@ class BitmapInfoHeader(Struct):
     @classmethod
     def from_buffer(cls, buf: bytes) -> BitmapInfoHeader:
         """
-        Create an instance for this class from a buffer.
+        Create an instance of this class from a buffer.
 
         Args:
-            buf (bytes): Source data.
+            buf: Source data.
 
         """
         instance = cls(*struct.unpack_from("<3I2H6I", buf, 0))
@@ -131,7 +157,7 @@ class BitmapInfoHeader(Struct):
 
     @property
     def height(self) -> int:
-        """Return the patched height for this bitmap."""
+        """The patched height for this bitmap."""
         return self._height // 2
 
 

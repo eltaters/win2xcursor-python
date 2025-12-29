@@ -15,6 +15,9 @@ from typing import Any, Iterable
 
 from msgspec import Struct
 
+# Unit of measurement for a frame's display rate.
+JIFFY = 1000 / 60
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,16 +26,16 @@ class AniHeader(Struct):
     Represents the ANIHEADER struct in the `anih` chunk.
 
     Attributes:
-        size (int): Length of this chunk.
-        frames (int): Number of frames in the file.
-        steps (int): Number of steps in the animation loop.
-        cx (int): Not used.
-        cy (int): Not used.
-        bit_count (int): Not used.
-        planes (int): Not used.
-        jifrate (int): Display rate in milliseconds.
-        fl (int): AF_SEQUENCE (0x2) | AF_ICON (0x1). AF_ICON should be set,
-        but AF_SEQUENCE is optional.
+        size: Length of this chunk.
+        frames: Number of frames in the file.
+        steps: Number of steps in the animation loop.
+        cx: Not used.
+        cy: Not used.
+        bit_count: Not used.
+        planes: Not used.
+        jifrate: Display rate in milliseconds.
+        fl: AF_SEQUENCE (0x2) | AF_ICON (0x1). AF_ICON should be set,
+            but AF_SEQUENCE is optional.
 
     """
 
@@ -46,19 +49,24 @@ class AniHeader(Struct):
     _jifrate: int
     _fl: int
 
+    @classmethod
+    def from_buffer(cls, buffer: bytes) -> AniHeader:
+        """Create an `AniHeader` from an in-memory buffer."""
+        return cls(*struct.unpack_from("<9I", buffer))
+
     @property
     def jifrate(self) -> int:
-        """int: Default display rate, in milliseconds."""
-        return int(1000 * self._jifrate / 60)
+        """Default display rate, in milliseconds."""
+        return round(self._jifrate * JIFFY)
 
     @property
     def icon(self) -> bool:
-        """bool: AF_ICON flag."""
+        """AF_ICON flag."""
         return self._fl & 0x1 != 0
 
     @property
     def sequence(self) -> bool:
-        """bool: AF_SEQUENCE optional flag."""
+        """AF_SEQUENCE optional flag."""
         return self._fl & 0x2 != 0
 
     def __repr__(self) -> str:
@@ -74,13 +82,13 @@ class AniHeader(Struct):
 
 class AniData:
     """
-    Class representation for a windows .ANI file.
+    Represents the parsed data within an ANI-formatted buffer.
 
     Attributes:
-        header (AniHeader): Header information for this file.
-        sequence (list): Order of frames in the animation by index.
-        rates (list): Jifrate per frame in the sequence.
-        frames (list): Raw ICO buffers on the file.
+        header: Header information for this file.
+        sequence: Order of frames in the animation by index.
+        rates: Jifrate per frame in the sequence.
+        frames: Raw ICO buffers on the file.
 
     """
 
@@ -101,33 +109,11 @@ class AniData:
         """
         self._data = buffer
         self._offset = 0
-
-        # RIFF header validation
-        ftype, size = self.unpack("<4sI")
-
-        if ftype != b"RIFF":
-            raise ValueError("Not a RIFF file")
-
-        if size + 8 != len(self._data):
-            raise ValueError(
-                f"Expected file size {size + 8}, got {len(self._data)}"
-            )
-
-        # RIFF type
-        rifftype, anih = self.unpack("<4s4s")
-        if rifftype != b"ACON" or anih != b"anih":
-            raise ValueError("Expected an .ani file")
-
-        # ANIH data
-        anihsize = self.unpack("<I")[0]
-        self.header = AniHeader(*self.unpack("<9I"))
-
-        assert anihsize == self.header.size, "Sizes differ"
-
-        # File options
-        self.sequence = self._sequence(self.header.sequence)
-        self.rates = self._rates(self.header.sequence)
-        self.frames = self._frames()
+        self._validate_signature()
+        self.header = self._parse_header()
+        self.sequence = self._parse_sequence(self.header.sequence)
+        self.rates = self._parse_rates(self.header.sequence)
+        self.frames = self._parse_frames()
 
     @classmethod
     def from_file(cls, path: pathlib.Path) -> AniData:
@@ -135,10 +121,10 @@ class AniData:
         Alternate constructor method from a file.
 
         Args:
-            path (Path): ANI file path.
+            path: ANI file path.
 
         Returns:
-            AniData: instance constructed from path.
+            instance constructed from path.
 
         """
         with open(path, "rb") as f:
@@ -159,6 +145,9 @@ class AniData:
         Returns:
             tuple: Unpacked values according to format.
 
+        See Also:
+            https://docs.python.org/3/library/struct.html#format-strings
+
         """
         values = struct.unpack_from(format, self._data, self._offset)
         self._offset += struct.calcsize(format)
@@ -177,16 +166,38 @@ class AniData:
 
         Examples:
             >>> self._data = b"...LIST...LIST..."
-            >>> for i in self.findall(sub=b"LIST"):
-            >>>     print(i)
-            [ 7, 14 ]
+            >>> [i for i in self.findall(sub=b"LIST")]
+            [7,14]
 
         """
         i = -1
         while (i := self._data.find(sub, i + 5)) != -1:
             yield i + 4
 
-    def _sequence(self, af_sequence: bool) -> list[int]:
+    def _validate_signature(self) -> None:
+        riff, size, acon = self.unpack("<4sI4s")
+
+        if riff != b"RIFF":
+            raise ValueError("Invalid RIFF file signature")
+
+        if (buffer_size := size + 8) != len(self._data):
+            raise ValueError(
+                f"Expected buffer size {buffer_size}, got {len(self._data)}"
+            )
+
+        if acon != b"ACON":
+            raise ValueError("Invalid ANI file signature")
+
+    def _parse_header(self) -> AniHeader:
+        anih, chunk_size = self.unpack("<4sI")
+        header = AniHeader(*self.unpack("<9I"))
+
+        if header.size != chunk_size:
+            raise ValueError("Chunk and header sizes differ")
+
+        return header
+
+    def _parse_sequence(self, af_sequence: bool) -> list[int]:
         """
         Obtain the sequence list for this file.
 
@@ -218,7 +229,7 @@ class AniData:
 
         return list(range(self.header.steps))
 
-    def _rates(self, af_sequence: bool) -> list[int]:
+    def _parse_rates(self, af_sequence: bool) -> list[int]:
         """
         Obtain the rate for each frame in the sequence.
 
@@ -242,7 +253,7 @@ class AniData:
 
         return [self.header.jifrate] * count
 
-    def _frames(self) -> list[bytes]:
+    def _parse_frames(self) -> list[bytes]:
         """
         Parse all ico files from the internal data buffer.
 

@@ -17,8 +17,8 @@ class Frames(NamedTuple):
     resolution.
 
     Attributes:
-        images  (list): List of frames.
-        frame_names (list): Indexed name for each frame.
+        images: List of frames.
+        frame_names: Indexed name for each frame.
         hotspot_x: X offset for the configuration.
         hotspot_y: Y offset for the configuration.
 
@@ -43,11 +43,10 @@ class FrameScaler:
     via the Nearest-Neighbor algorithm.
 
     Attributes:
-        name (str): Name of the original resource, which is then decomposed
-                    into frames.
-        images (Image.Image): PNG representation of the frames.
-        x (int): Base x hotspot for the frames.
-        y (int): Base y hotspot for the frames.
+        name: Name of original resource, which is then decomposed into frames.
+        images: PNG representation of the frames.
+        x: Base X hotspot for the frames.
+        y: Base Y hotspot for the frames.
 
     """
 
@@ -56,9 +55,9 @@ class FrameScaler:
         Create an instance object of this class.
 
         Args:
-            icos (list): List of ICO or CUR formatted buffers.
-            name (str): Name of the original resource.
-            ignore_hotspots (bool): Sets x/y hotspot values to 0 if True.
+            icos: List of ICO or CUR formatted buffers.
+            name: Name of the original resource.
+            ignore_hotspots: Sets X/Y hotspot values to 0 if True.
 
         """
         self.name = name
@@ -80,10 +79,10 @@ class FrameScaler:
         Scale the stored frames on a specified scale.
 
         Args:
-            scale_value (int): scaling factor for the image:
+            scale_value: scaling factor for the image:
 
         Returns:
-            Frames: Scaled PNG frames alongside metadata in a Frames tuple.
+            Scaled PNG frames alongside metadata in a Frames tuple.
 
         """
         frames_list = []
@@ -95,9 +94,11 @@ class FrameScaler:
                 for image in self.resolutions[size]
             ]
 
+            image_count = len(images)
+            image_count_digits = len(str(image_count))
+            index_width = max(image_count_digits, 2)
             indices = [
-                str(i + 1).zfill(max(2, len(str(len(images)))))
-                for i in range(len(images))
+                str(i).zfill(index_width) for i in range(1, image_count + 1)
             ]
 
             frames_list.append(
